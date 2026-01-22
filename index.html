@@ -145,12 +145,11 @@
                 margin: 0;
                 padding: 0;
             }
-            /* Force break page for multiple labels if needed */
             .print-page-break { 
                 page-break-after: always; 
             }
             @page {
-                size: 100mm 150mm; /* Standard Shipping Label Size 4x6" */
+                size: 100mm 150mm;
                 margin: 0;
             }
         }
@@ -161,9 +160,7 @@
     <!-- =======================
          HIDDEN PRINT AREA
     ======================== -->
-    <div id="printable-area" class="hidden">
-        <!-- Content will be injected here for printing -->
-    </div>
+    <div id="printable-area" class="hidden"></div>
 
     <!-- =======================
          UI COMPONENTS
@@ -274,15 +271,29 @@
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Configuration
-        const firebaseConfig = JSON.parse(__firebase_config);
-        const appFirebase = initializeApp(firebaseConfig);
-        const auth = getAuth(appFirebase);
-        const db = getFirestore(appFirebase);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        let db, auth, appId;
+        let useLocalStorage = false; // Flag for Fallback Mode
+
+        // Initialize Firebase safely
+        try {
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const appFirebase = initializeApp(firebaseConfig);
+                auth = getAuth(appFirebase);
+                db = getFirestore(appFirebase);
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            } else {
+                throw new Error("No Firebase Config");
+            }
+        } catch (e) {
+            console.warn("Firebase not configured. Using LocalStorage mode.", e);
+            useLocalStorage = true;
+        }
 
         // Const for DB Collection and Doc
         const COLLECTION_NAME = 'warehouse_qc_db';
         const DOC_ID = 'master'; 
+        const LOCAL_STORAGE_KEY = 'warehouse_qc_data_offline';
 
         const app = {
             data: { orders: [] },
@@ -291,6 +302,13 @@
             user: null, 
 
             async init() {
+                if (useLocalStorage) {
+                    this.loadDataLocal();
+                    if (!this.data.orders || this.data.orders.length === 0) this.seedData();
+                    this.router('dashboard');
+                    return;
+                }
+
                 // Initialize Firebase Auth
                 try {
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -312,13 +330,7 @@
                                 const newData = snapshot.data();
                                 if (newData && newData.orders) {
                                     this.data = newData;
-                                    // Only refresh router if we are already on a page
-                                    if (document.getElementById('main-view').innerHTML === '') {
-                                        this.router(this.activeTab);
-                                    } else {
-                                        // Optional: Live update logic without full reload can be added here
-                                        // For now, let's keep it simple and just update data reference
-                                    }
+                                    this.router(this.activeTab); 
                                 }
                             } else {
                                 // First time init: create doc with seed data
@@ -334,7 +346,21 @@
                 this.router('dashboard');
             },
 
+            loadDataLocal() {
+                const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (stored) {
+                    this.data = JSON.parse(stored);
+                } else {
+                    this.data = { orders: [] };
+                }
+            },
+
             async saveData() {
+                if (useLocalStorage) {
+                    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(this.data));
+                    return;
+                }
+
                 if (!this.user) return;
                 try {
                     const docRef = doc(db, 'artifacts', appId, 'public', 'data', COLLECTION_NAME, DOC_ID);
@@ -407,7 +433,6 @@
                 lucide.createIcons();
             },
 
-            // VIEWS AND RENDERERS MOVED HERE
             views: {
                 // UI HELPERS (Refactored to support scrollable content)
                 modalHTML(title, html, onConfirm, btnText='ยืนยัน') {
@@ -484,6 +509,7 @@
                         </div>
                     `;
 
+                    // Logic for filtering
                     const renderList = () => {
                         const search = document.getElementById('history-search').value.toLowerCase();
                         const status = document.getElementById('history-filter-status').value;
