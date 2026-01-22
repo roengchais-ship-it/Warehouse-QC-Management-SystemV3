@@ -131,12 +131,7 @@
            REAL PRINT STYLES (FIXED v9.2)
            ------------------------------------------- */
         @media print {
-            /* 1. Hide everything in the body first */
-            body > * {
-                display: none !important;
-            }
-            
-            /* 2. Show ONLY the printable area */
+            body > * { display: none !important; }
             #printable-area {
                 display: block !important;
                 position: absolute;
@@ -148,31 +143,21 @@
                 padding: 0;
                 background-color: white;
             }
-
-            /* 3. Ensure child elements are visible */
-            #printable-area * {
-                visibility: visible;
-            }
-
-            /* 4. Force Background Colors & Graphics */
+            #printable-area * { visibility: visible; }
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
                 color-adjust: exact !important;
             }
-
-            /* 5. Set Paper Size (Fixed 100x150mm) */
             @page {
                 size: 100mm 150mm;
-                margin: 0; /* No margins from browser */
+                margin: 0;
             }
-
-            /* 6. Page Break Logic */
             .print-page-break { 
                 page-break-after: always;
                 page-break-inside: avoid;
                 width: 100mm;
-                height: 149mm; /* Slightly less than 150 to prevent overflow blank page */
+                height: 149mm;
                 overflow: hidden;
             }
         }
@@ -295,9 +280,8 @@
 
         // Configuration
         let db, auth, appId;
-        let useLocalStorage = false; // Flag for Fallback Mode
+        let useLocalStorage = false; 
 
-        // Initialize Firebase safely
         try {
             if (typeof __firebase_config !== 'undefined' && __firebase_config) {
                 const firebaseConfig = JSON.parse(__firebase_config);
@@ -313,7 +297,6 @@
             useLocalStorage = true;
         }
 
-        // Const for DB Collection and Doc
         const COLLECTION_NAME = 'warehouse_qc_db';
         const DOC_ID = 'master'; 
         const LOCAL_STORAGE_KEY = 'warehouse_qc_data_offline';
@@ -332,7 +315,6 @@
                     return;
                 }
 
-                // Initialize Firebase Auth
                 try {
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                         await signInWithCustomToken(auth, __initial_auth_token);
@@ -346,17 +328,20 @@
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
                         this.user = user;
-                        // Listen to Firestore real-time updates
                         const docRef = doc(db, 'artifacts', appId, 'public', 'data', COLLECTION_NAME, DOC_ID);
                         onSnapshot(docRef, (snapshot) => {
                             if (snapshot.exists()) {
                                 const newData = snapshot.data();
                                 if (newData && newData.orders) {
                                     this.data = newData;
-                                    this.router(this.activeTab); 
+                                    // re-render only if safe
+                                    const activeEl = document.activeElement;
+                                    const isEditing = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
+                                    if (!isEditing) {
+                                         this.router(this.activeTab);
+                                    }
                                 }
                             } else {
-                                // First time init: create doc with seed data
                                 this.seedData();
                             }
                         }, (error) => {
@@ -365,7 +350,6 @@
                     }
                 });
 
-                // Set default view while loading
                 this.router('dashboard');
             },
 
@@ -409,7 +393,6 @@
                         }
                     ]
                 };
-                // Set local then save cloud
                 this.data = initialData;
                 this.saveData();
             },
@@ -420,7 +403,6 @@
                 const main = document.getElementById('main-view');
                 if(!main) return;
                 
-                // Clear content first
                 main.innerHTML = ''; 
                 window.scrollTo(0,0);
 
@@ -457,12 +439,10 @@
             },
 
             views: {
-                // UI HELPERS (Refactored to support scrollable content)
                 modalHTML(title, html, onConfirm, btnText='ยืนยัน') {
                     const overlay = document.getElementById('modal-overlay');
                     const content = document.getElementById('modal-content');
                     
-                    // Reset container classes to ensure correct flex layout
                     content.className = "bg-white w-full max-w-md rounded-3xl shadow-2xl transform scale-95 transition-transform duration-200 overflow-hidden flex flex-col max-h-[85vh]";
 
                     content.innerHTML = `
@@ -474,7 +454,7 @@
                         <!-- Scrollable Body -->
                         <div class="px-6 py-2 overflow-y-auto flex-1 min-h-0 overscroll-contain">
                             ${html}
-                            <div class="h-4"></div> <!-- Extra spacing at bottom -->
+                            <div class="h-4"></div>
                         </div>
 
                         <!-- Fixed Footer -->
@@ -1171,6 +1151,8 @@
                                     <div class="text-center mb-4 min-h-[40px] flex flex-col justify-center">
                                         <h2 id="preview-product-name" class="text-lg font-bold text-slate-800 leading-tight">กำลังโหลด...</h2>
                                          <p class="text-[9px] text-slate-500 font-bold tracking-widest mt-1">PRODUCT NAME</p>
+                                        <!-- QTY Display in Preview -->
+                                        <h3 class="text-xl font-black text-slate-900 mt-2">QTY: <span id="preview-qty">0</span></h3>
                                     </div>
 
                                     <div class="grid grid-cols-2 gap-0 border-y-2 border-slate-800">
@@ -1204,73 +1186,42 @@
                         const boxCount = parseInt(document.getElementById('print-box-count').innerText) || 1;
                         const productName = document.getElementById('preview-product-name').innerText;
                         const lotNo = document.getElementById('preview-lot').innerText;
+                        
+                        // Get qty per box for calculation logic
+                        const totalQty = parseInt(document.getElementById('print-total-qty').value) || 0;
+                        const qtyPerBox = parseInt(document.getElementById('print-qty-per-box').value) || 1;
+                        
                         const totalBoxes = boxCount; 
-
                         const printContent = [];
                         
-                        // Loop 2 labels per page
                         for (let i = 1; i <= totalBoxes; i+=2) {
                             const box1 = i;
+                            // Calculate Qty for Box 1
+                            let qty1 = qtyPerBox;
+                            if (box1 === totalBoxes) {
+                                 const remainder = totalQty % qtyPerBox;
+                                 qty1 = remainder === 0 ? qtyPerBox : remainder;
+                            }
+
                             const box2 = (i + 1 <= totalBoxes) ? i + 1 : null;
+                            let qty2 = 0;
+                            if (box2) {
+                                qty2 = qtyPerBox;
+                                if (box2 === totalBoxes) {
+                                     const remainder = totalQty % qtyPerBox;
+                                     qty2 = remainder === 0 ? qtyPerBox : remainder;
+                                }
+                            }
 
                             printContent.push(`
                                 <div class="print-page-break" style="width: 100mm; height: 149mm; padding: 2mm; box-sizing: border-box; display: flex; flex-direction: column;">
                                     
-                                    <!-- Label 1 (Top) -->
-                                    <div style="flex: 1; display: flex; flex-direction: column; border: 3px solid #000; box-sizing: border-box; margin-bottom: 1mm;">
-                                        <div style="background-color: #000; color: #fff; text-align: center; padding: 5px 0;">
-                                            <h1 style="font-size: 18pt; font-weight: 900; margin: 0; line-height: 1; text-transform: uppercase;">${order.customer}</h1>
-                                        </div>
-                                        
-                                        <div style="flex: 1; padding: 5px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
-                                            <h2 style="font-size: 14pt; font-weight: bold; margin: 0; line-height: 1.1;">${productName}</h2>
-                                            <p style="font-size: 8pt; font-weight: bold; color: #000; margin-top: 2px;">LOT: ${lotNo}</p>
-                                        </div>
-
-                                        <div style="display: flex; border-top: 3px solid #000;">
-                                            <div style="flex: 1; border-right: 3px solid #000; padding: 5px; text-align: center; display: flex; align-items: center; justify-content: center;">
-                                                <span style="font-size: 8pt; font-weight: bold;">BOX</span>
-                                                <span style="font-size: 20pt; font-weight: 900; margin-left: 5px;">${box1}/${totalBoxes}</span>
-                                            </div>
-                                            <div style="flex: 1; padding: 5px;">
-                                                <div style="border-bottom: 1px solid #000; margin-top: 15px;"></div>
-                                                <div style="font-size: 6pt; text-align: center;">PACKED BY</div>
-                                                <div style="border-bottom: 1px solid #000; margin-top: 8px;"></div>
-                                                <div style="font-size: 6pt; text-align: center;">QC CHECK</div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    ${this.generateSingleLabelHTML(order.customer, productName, lotNo, box1, totalBoxes, qty1)}
 
                                     ${box2 ? `
-                                    <!-- Dashed Line Cutter -->
                                     <div style="border-top: 2px dashed #999; margin: 1mm 0; width: 100%;"></div>
-
-                                    <!-- Label 2 (Bottom) -->
-                                    <div style="flex: 1; display: flex; flex-direction: column; border: 3px solid #000; box-sizing: border-box; margin-top: 1mm;">
-                                        <div style="background-color: #000; color: #fff; text-align: center; padding: 5px 0;">
-                                            <h1 style="font-size: 18pt; font-weight: 900; margin: 0; line-height: 1; text-transform: uppercase;">${order.customer}</h1>
-                                        </div>
-                                        
-                                        <div style="flex: 1; padding: 5px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
-                                            <h2 style="font-size: 14pt; font-weight: bold; margin: 0; line-height: 1.1;">${productName}</h2>
-                                            <p style="font-size: 8pt; font-weight: bold; color: #000; margin-top: 2px;">LOT: ${lotNo}</p>
-                                        </div>
-
-                                        <div style="display: flex; border-top: 3px solid #000;">
-                                            <div style="flex: 1; border-right: 3px solid #000; padding: 5px; text-align: center; display: flex; align-items: center; justify-content: center;">
-                                                <span style="font-size: 8pt; font-weight: bold;">BOX</span>
-                                                <span style="font-size: 20pt; font-weight: 900; margin-left: 5px;">${box2}/${totalBoxes}</span>
-                                            </div>
-                                            <div style="flex: 1; padding: 5px;">
-                                                <div style="border-bottom: 1px solid #000; margin-top: 15px;"></div>
-                                                <div style="font-size: 6pt; text-align: center;">PACKED BY</div>
-                                                <div style="border-bottom: 1px solid #000; margin-top: 8px;"></div>
-                                                <div style="font-size: 6pt; text-align: center;">QC CHECK</div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    ${this.generateSingleLabelHTML(order.customer, productName, lotNo, box2, totalBoxes, qty2)}
                                     ` : `
-                                    <!-- Empty Space if no second box -->
                                     <div style="flex: 1; margin-top: 1mm;"></div>
                                     `}
                                 </div>
@@ -1280,35 +1231,37 @@
                         const printableArea = document.getElementById('printable-area');
                         printableArea.innerHTML = printContent.join('');
 
-                        // Small delay to ensure styles apply before printing
                         setTimeout(() => window.print(), 300);
 
                     }, 'สั่งพิมพ์');
                     
-                    // Initial update
                     setTimeout(() => app.logic.updatePrintPreview(id), 100);
                 },
 
-                generateSingleLabelHTML(customer, product, lot, currentBox, totalBox) {
+                generateSingleLabelHTML(customer, product, lot, currentBox, totalBox, qty) {
                     return `
-                        <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; border: 2px solid #000; padding: 10px; box-sizing: border-box;">
-                            <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 5px;">
-                                <h1 style="font-size: 16pt; font-weight: 900; margin: 0; text-transform: uppercase;">${customer}</h1>
+                        <div style="flex: 1; display: flex; flex-direction: column; border: 3px solid #000; box-sizing: border-box; margin-bottom: 1mm; margin-top: 1mm;">
+                            <div style="background-color: #000; color: #fff; text-align: center; padding: 5px 0;">
+                                <h1 style="font-size: 18pt; font-weight: 900; margin: 0; line-height: 1; text-transform: uppercase;">${customer}</h1>
                             </div>
-                            <div style="text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center;">
-                                <h2 style="font-size: 12pt; font-weight: bold; margin: 0;">${product}</h2>
+                            
+                            <div style="flex: 1; padding: 5px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
+                                <h2 style="font-size: 14pt; font-weight: bold; margin: 0; line-height: 1.1;">${product}</h2>
+                                <h3 style="font-size: 24pt; font-weight: 900; margin: 5px 0 0 0;">QTY: ${qty}</h3>
+                                <p style="font-size: 8pt; font-weight: bold; color: #000; margin-top: 2px;">LOT: ${lot}</p>
                             </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; border-top: 2px solid #000; border-bottom: 2px solid #000; margin-bottom: 10px;">
-                                <div style="text-align: center; border-right: 2px solid #000; padding: 5px;">
-                                    <span style="display: block; font-size: 8pt; font-weight: bold;">LOT: ${lot}</span>
+
+                            <div style="display: flex; border-top: 3px solid #000;">
+                                <div style="flex: 1; border-right: 3px solid #000; padding: 5px; text-align: center; display: flex; align-items: center; justify-content: center;">
+                                    <span style="font-size: 8pt; font-weight: bold;">BOX</span>
+                                    <span style="font-size: 20pt; font-weight: 900; margin-left: 5px;">${currentBox}/${totalBox}</span>
                                 </div>
-                                <div style="text-align: center; padding: 5px;">
-                                    <span style="display: block; font-size: 14pt; font-weight: 900;">${currentBox}/${totalBox}</span>
+                                <div style="flex: 1; padding: 5px;">
+                                    <div style="border-bottom: 1px solid #000; margin-top: 15px;"></div>
+                                    <div style="font-size: 6pt; text-align: center;">PACKED BY</div>
+                                    <div style="border-bottom: 1px solid #000; margin-top: 8px;"></div>
+                                    <div style="font-size: 6pt; text-align: center;">QC CHECK</div>
                                 </div>
-                            </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                <div><div style="border-bottom: 1px solid #000; height: 15px;"></div><p style="font-size: 6pt; text-align: center;">PACKED BY</p></div>
-                                <div><div style="border-bottom: 1px solid #000; height: 15px;"></div><p style="font-size: 6pt; text-align: center;">CHECKED BY</p></div>
                             </div>
                         </div>
                     `;
@@ -1331,26 +1284,27 @@
                         item.picks.forEach(p => { if(p.lot) lotNumbers.add(p.lot); });
                     });
 
-                    // Update State
                     app.tempPrintState.selectedItems = selectedItems;
                     app.tempPrintState.totalQty = totalQty;
 
-                    // Update UI inputs
                     const totalQtyEl = document.getElementById('print-total-qty');
                     const qtyPerBoxEl = document.getElementById('print-qty-per-box');
                     
                     if (totalQtyEl) totalQtyEl.value = totalQty;
-                    // Default qty per box = total of selected
                     if (qtyPerBoxEl && selectedItems.length > 0) qtyPerBoxEl.value = totalQty;
 
-                    // Update Preview Text
                     const nameEl = document.getElementById('preview-product-name');
                     const lotEl = document.getElementById('preview-lot');
+                    const qtyEl = document.getElementById('preview-qty'); // New QTY preview element
 
                     if (nameEl) {
                         if (selectedItems.length === 0) nameEl.innerText = "- ไม่ได้เลือกสินค้า -";
                         else if (selectedItems.length === 1) nameEl.innerText = selectedItems[0].name;
                         else nameEl.innerText = "สินค้าคละรายการ";
+                    }
+
+                    if (qtyEl) {
+                         qtyEl.innerText = totalQty; // Shows total qty in first box preview for now
                     }
 
                     if (lotEl) {
@@ -1370,9 +1324,13 @@
                    
                    const boxCountEl = document.getElementById('print-box-count');
                    const previewTotalBoxEl = document.getElementById('preview-total-box');
+                   const previewQtyEl = document.getElementById('preview-qty');
                    
                    if (boxCountEl) boxCountEl.innerText = boxes;
                    if (previewTotalBoxEl) previewTotalBoxEl.innerText = boxes;
+                   
+                   // Update preview qty to show per box qty
+                   if (previewQtyEl) previewQtyEl.innerText = (perBox > total) ? total : perBox;
                 },
 
                 moveStatus(id, newStatus, logMsg) {
