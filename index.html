@@ -216,22 +216,18 @@
                 
                 <button onclick="app.router('stock')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:bg-slate-50 text-slate-500" data-page="stock">
                     <i data-lucide="layers" class="w-5 h-5"></i> <span class="flex-1 text-left">สต็อก / เบิกสินค้า</span>
-                    <span id="desktop-badge-stock" class="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span>
                 </button>
                 
                 <button onclick="app.router('qc')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:bg-slate-50 text-slate-500" data-page="qc">
                     <i data-lucide="clipboard-check" class="w-5 h-5"></i> <span class="flex-1 text-left">ตรวจสอบ QC</span>
-                    <span id="desktop-badge-qc" class="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span>
                 </button>
                 
                 <button onclick="app.router('pack')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:bg-slate-50 text-slate-500" data-page="pack">
                     <i data-lucide="box" class="w-5 h-5"></i> <span class="flex-1 text-left">แพ็คสินค้า</span>
-                    <span id="desktop-badge-pack" class="bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span>
                 </button>
                 
                 <button onclick="app.router('ship')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:bg-slate-50 text-slate-500" data-page="ship">
                     <i data-lucide="truck" class="w-5 h-5"></i> <span class="flex-1 text-left">จัดส่ง</span>
-                    <span id="desktop-badge-ship" class="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span>
                 </button>
                 
                 <div class="pt-6 pb-2 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">ข้อมูล</div>
@@ -253,21 +249,9 @@
     <!-- BOTTOM NAV (Mobile) -->
     <nav id="mobile-nav" class="lg:hidden fixed bottom-0 w-full bg-white/95 backdrop-blur border-t border-slate-200 flex justify-around items-center h-[70px] z-40 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.03)] transition-transform duration-300">
         <button onclick="app.router('dashboard')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400" data-page="dashboard"><i data-lucide="layout-grid" class="w-6 h-6"></i><span class="text-[10px] font-medium">หน้าหลัก</span></button>
-        <button onclick="app.router('stock')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400 relative" data-page="stock">
-            <i data-lucide="layers" class="w-6 h-6"></i>
-            <span class="text-[10px] font-medium">เบิก</span>
-            <span id="mobile-badge-stock" class="absolute top-1 right-3 min-w-[16px] h-4 flex items-center justify-center bg-orange-500 text-white text-[9px] font-bold px-1 rounded-full border border-white hidden">0</span>
-        </button>
-        <button onclick="app.router('qc')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400 relative" data-page="qc">
-            <i data-lucide="clipboard-check" class="w-6 h-6"></i>
-            <span class="text-[10px] font-medium">QC</span>
-            <span id="mobile-badge-qc" class="absolute top-1 right-3 min-w-[16px] h-4 flex items-center justify-center bg-rose-500 text-white text-[9px] font-bold px-1 rounded-full border border-white hidden">0</span>
-        </button>
-        <button onclick="app.router('pack')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400" data-page="pack">
-            <i data-lucide="box" class="w-6 h-6"></i>
-            <span class="text-[10px] font-medium">แพ็ค</span>
-            <span id="mobile-badge-pack" class="absolute top-1 right-3 min-w-[16px] h-4 flex items-center justify-center bg-blue-500 text-white text-[9px] font-bold px-1 rounded-full border border-white hidden">0</span>
-        </button>
+        <button onclick="app.router('stock')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400 relative" data-page="stock"><i data-lucide="layers" class="w-6 h-6"></i><span class="text-[10px] font-medium">เบิก</span></button>
+        <button onclick="app.router('qc')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400 relative" data-page="qc"><i data-lucide="clipboard-check" class="w-6 h-6"></i><span class="text-[10px] font-medium">QC</span></button>
+        <button onclick="app.router('pack')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400" data-page="pack"><i data-lucide="box" class="w-6 h-6"></i><span class="text-[10px] font-medium">แพ็ค</span></button>
         <button onclick="app.router('history')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400" data-page="history"><i data-lucide="clock" class="w-6 h-6"></i><span class="text-[10px] font-medium">ประวัติ</span></button>
     </nav>
 
@@ -283,15 +267,16 @@
         let db, auth, appId;
         let useLocalStorage = false; 
         
-        // --- 🟢 ส่วนตั้งค่า Firebase (ใส่ให้แล้ว) ---
+        // --- 🟢 ส่วนตั้งค่า Firebase ---
+        // ใส่ Config ที่ได้จาก Firebase Console ตรงนี้
         const myFirebaseConfig = {
-            apiKey: "AIzaSyC_gvuDL3XqwBpU1Ns3VSILDOCaf9n6Uik",
-            authDomain: "warehouse-qc-management-system.firebaseapp.com",
-            projectId: "warehouse-qc-management-system",
-            storageBucket: "warehouse-qc-management-system.firebasestorage.app",
-            messagingSenderId: "1033934968682",
-            appId: "1:1033934968682:web:9a4cfd06d0d5335d527713",
-            measurementId: "G-JX6KLL0PJS"
+             apiKey: "AIzaSyC_gvuDL3XqwBpU1Ns3VSILDOCaf9n6Uik",
+             authDomain: "warehouse-qc-management-system.firebaseapp.com",
+             projectId: "warehouse-qc-management-system",
+             storageBucket: "warehouse-qc-management-system.firebasestorage.app",
+             messagingSenderId: "1033934968682",
+             appId: "1:1033934968682:web:9a4cfd06d0d5335d527713",
+             measurementId: "G-JX6KLL0PJS"
         };
         
         // Setup Config
@@ -300,7 +285,7 @@
                 const appFirebase = initializeApp(myFirebaseConfig);
                 auth = getAuth(appFirebase);
                 db = getFirestore(appFirebase);
-                appId = 'warehouse-qc-app'; // Fixed ID for simplicity
+                appId = 'warehouse-qc-app'; 
             } else {
                 throw new Error("No Config");
             }
@@ -333,7 +318,6 @@
                     await signInAnonymously(auth);
                 } catch (e) {
                     console.error("Auth failed", e);
-                    // Fallback to LocalStorage if Auth fails
                     console.warn("Switching to Offline Mode due to Auth failure");
                     useLocalStorage = true;
                     this.loadDataLocal();
@@ -352,14 +336,13 @@
                                 if (newData && newData.orders) {
                                     this.data = newData;
                                     
-                                    // FIX: Check if user is editing inputs before re-rendering
+                                    // Prevent refresh if user is editing
                                     const activeEl = document.activeElement;
                                     const isEditing = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
 
                                     if (!isEditing) {
                                         this.router(this.currentPage || this.activeTab, this.currentParam);
                                     }
-                                    this.updateBadges();
                                 }
                             } else {
                                 this.seedData();
@@ -380,23 +363,21 @@
                 } else {
                     this.data = { orders: [] };
                 }
-                this.updateBadges();
             },
 
             async saveData() {
                 if (useLocalStorage) {
                     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(this.data));
-                    this.updateBadges();
                     return;
                 }
 
-                if (!this.user || !this._firebase) {
-                     // If _firebase ref missing but db exists, use global db
-                     if(db && appId) {
-                         const docRef = doc(db, 'artifacts', appId, 'public', 'data', COLLECTION_NAME, DOC_ID);
-                         await setDoc(docRef, this.data);
-                     }
-                     return;
+                if (!this.user) return;
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', COLLECTION_NAME, DOC_ID);
+                    await setDoc(docRef, this.data);
+                } catch (e) {
+                    console.error("Save error:", e);
+                    this.ui.toast("บันทึกข้อมูลไม่สำเร็จ (ลองใหม่อีกครั้ง)", "error");
                 }
             },
 
@@ -463,37 +444,7 @@
                 lucide.createIcons();
             },
 
-            updateBadges() {
-                const counts = {
-                    stock: this.data.orders.filter(o => o.status === 'pending_stock').length,
-                    qc: this.data.orders.filter(o => o.status === 'pending_qc').length,
-                    pack: this.data.orders.filter(o => o.status === 'pending_pack').length,
-                    ship: this.data.orders.filter(o => o.status === 'ready_ship').length
-                };
-
-                const updateBadge = (id, count) => {
-                    const el = document.getElementById(id);
-                    if (el) {
-                        el.innerText = count > 99 ? '99+' : count;
-                        if (count > 0) el.classList.remove('hidden');
-                        else el.classList.add('hidden');
-                    }
-                };
-
-                // Mobile
-                updateBadge('mobile-badge-stock', counts.stock);
-                updateBadge('mobile-badge-qc', counts.qc);
-                updateBadge('mobile-badge-pack', counts.pack);
-                
-                // Desktop
-                updateBadge('desktop-badge-stock', counts.stock);
-                updateBadge('desktop-badge-qc', counts.qc);
-                updateBadge('desktop-badge-pack', counts.pack);
-                updateBadge('desktop-badge-ship', counts.ship);
-            },
-
             views: {
-                // UI HELPERS (Refactored to support scrollable content)
                 modalHTML(title, html, onConfirm, btnText='ยืนยัน') {
                     const overlay = document.getElementById('modal-overlay');
                     const content = document.getElementById('modal-content');
@@ -1229,32 +1180,52 @@
                         const boxCount = parseInt(document.getElementById('print-box-count').innerText) || 1;
                         const productName = document.getElementById('preview-product-name').innerText;
                         const lotNo = document.getElementById('preview-lot').innerText;
-                        const totalBoxes = boxCount; // Use calculated total boxes
                         
-                        // Prepare content for printing
+                        // Get qty per box for calculation logic
+                        const totalQty = parseInt(document.getElementById('print-total-qty').value) || 0;
+                        const qtyPerBox = parseInt(document.getElementById('print-qty-per-box').value) || 1;
+                        
+                        const totalBoxes = boxCount; 
                         const printContent = [];
                         
                         for (let i = 1; i <= totalBoxes; i+=2) {
                             const box1 = i;
+                            // Calculate Qty for Box 1
+                            let qty1 = qtyPerBox;
+                            if (box1 === totalBoxes) {
+                                 const remainder = totalQty % qtyPerBox;
+                                 qty1 = remainder === 0 ? qtyPerBox : remainder;
+                            }
+
                             const box2 = (i + 1 <= totalBoxes) ? i + 1 : null;
+                            let qty2 = 0;
+                            if (box2) {
+                                qty2 = qtyPerBox;
+                                if (box2 === totalBoxes) {
+                                     const remainder = totalQty % qtyPerBox;
+                                     qty2 = remainder === 0 ? qtyPerBox : remainder;
+                                }
+                            }
 
                             printContent.push(`
-                                <div class="print-page-break" style="width: 100mm; height: 150mm; padding: 5mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
-                                    ${this.generateSingleLabelHTML(order.customer, productName, lotNo, box1, totalBoxes)}
+                                <div class="print-page-break" style="width: 100mm; height: 149mm; padding: 2mm; box-sizing: border-box; display: flex; flex-direction: column;">
+                                    
+                                    ${this.generateSingleLabelHTML(order.customer, productName, lotNo, box1, totalBoxes, qty1)}
+
                                     ${box2 ? `
-                                        <div style="border-top: 1px dashed #000; margin: 5mm 0;"></div>
-                                        ${this.generateSingleLabelHTML(order.customer, productName, lotNo, box2, totalBoxes)}
-                                    ` : ''}
+                                    <div style="border-top: 2px dashed #999; margin: 1mm 0; width: 100%;"></div>
+                                    ${this.generateSingleLabelHTML(order.customer, productName, lotNo, box2, totalBoxes, qty2)}
+                                    ` : `
+                                    <div style="flex: 1; margin-top: 1mm;"></div>
+                                    `}
                                 </div>
                             `);
                         }
 
-                        // Inject to hidden print area
                         const printableArea = document.getElementById('printable-area');
                         printableArea.innerHTML = printContent.join('');
 
-                        // Trigger Print
-                        window.print();
+                        setTimeout(() => window.print(), 300);
 
                     }, 'สั่งพิมพ์');
                     
@@ -1262,26 +1233,30 @@
                     setTimeout(() => app.logic.updatePrintPreview(id), 100);
                 },
 
-                generateSingleLabelHTML(customer, product, lot, currentBox, totalBox) {
+                generateSingleLabelHTML(customer, product, lot, currentBox, totalBox, qty) {
                     return `
-                        <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; border: 2px solid #000; padding: 10px; box-sizing: border-box;">
-                            <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 5px;">
-                                <h1 style="font-size: 16pt; font-weight: 900; margin: 0; text-transform: uppercase;">${customer}</h1>
+                        <div style="flex: 1; display: flex; flex-direction: column; border: 3px solid #000; box-sizing: border-box; margin-bottom: 1mm; margin-top: 1mm;">
+                            <div style="background-color: #000; color: #fff; text-align: center; padding: 5px 0;">
+                                <h1 style="font-size: 18pt; font-weight: 900; margin: 0; line-height: 1; text-transform: uppercase;">${customer}</h1>
                             </div>
-                            <div style="text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center;">
-                                <h2 style="font-size: 12pt; font-weight: bold; margin: 0;">${product}</h2>
+                            
+                            <div style="flex: 1; padding: 5px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
+                                <h2 style="font-size: 14pt; font-weight: bold; margin: 0; line-height: 1.1;">${product}</h2>
+                                <h3 style="font-size: 24pt; font-weight: 900; margin: 5px 0 0 0;">QTY: ${qty}</h3>
+                                <p style="font-size: 8pt; font-weight: bold; color: #000; margin-top: 2px;">LOT: ${lot}</p>
                             </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; border-top: 2px solid #000; border-bottom: 2px solid #000; margin-bottom: 10px;">
-                                <div style="text-align: center; border-right: 2px solid #000; padding: 5px;">
-                                    <span style="display: block; font-size: 8pt; font-weight: bold;">LOT: ${lot}</span>
+
+                            <div style="display: flex; border-top: 3px solid #000;">
+                                <div style="flex: 1; border-right: 3px solid #000; padding: 5px; text-align: center; display: flex; align-items: center; justify-content: center;">
+                                    <span style="font-size: 8pt; font-weight: bold;">BOX</span>
+                                    <span style="font-size: 20pt; font-weight: 900; margin-left: 5px;">${currentBox}/${totalBox}</span>
                                 </div>
-                                <div style="text-align: center; padding: 5px;">
-                                    <span style="display: block; font-size: 14pt; font-weight: 900;">${currentBox}/${totalBox}</span>
+                                <div style="flex: 1; padding: 5px;">
+                                    <div style="border-bottom: 1px solid #000; margin-top: 15px;"></div>
+                                    <div style="font-size: 6pt; text-align: center;">PACKED BY</div>
+                                    <div style="border-bottom: 1px solid #000; margin-top: 8px;"></div>
+                                    <div style="font-size: 6pt; text-align: center;">QC CHECK</div>
                                 </div>
-                            </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                <div><div style="border-bottom: 1px solid #000; height: 15px;"></div><p style="font-size: 6pt; text-align: center;">PACKED BY</p></div>
-                                <div><div style="border-bottom: 1px solid #000; height: 15px;"></div><p style="font-size: 6pt; text-align: center;">CHECKED BY</p></div>
                             </div>
                         </div>
                     `;
@@ -1389,18 +1364,13 @@
                     content.className = "bg-white w-full max-w-md rounded-3xl shadow-2xl transform scale-95 transition-transform duration-200 overflow-hidden flex flex-col max-h-[90dvh]";
 
                     content.innerHTML = `
-                        <!-- Fixed Header -->
                         <div class="px-6 pt-6 pb-2 flex-shrink-0 z-10 bg-white">
                             <h3 class="text-xl font-bold text-slate-800">${title}</h3>
                         </div>
-                        
-                        <!-- Scrollable Body -->
-                        <div class="px-6 py-2 overflow-y-auto flex-1 min-h-0 overscroll-contain">
+                        <div class="px-6 py-2 overflow-y-auto flex-1 min-h-0 overscroll-contain" style="-webkit-overflow-scrolling: touch;">
                             ${html}
-                            <div class="h-4"></div> <!-- Extra spacing at bottom -->
+                            <div class="h-8"></div> 
                         </div>
-
-                        <!-- Fixed Footer -->
                         <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 flex-shrink-0 bg-slate-50 z-10">
                             <button id="modal-cancel" class="h-10 px-6 text-sm text-slate-500 font-bold hover:bg-slate-200 rounded-xl transition-colors">ยกเลิก</button>
                             <button id="modal-confirm" class="h-10 px-6 btn-blue text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-200 hover:shadow-blue-300 transition-all active:scale-95">${btnText}</button>
