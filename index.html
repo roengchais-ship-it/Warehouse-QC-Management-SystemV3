@@ -213,18 +213,22 @@
                 
                 <button onclick="app.router('stock')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:bg-slate-50 text-slate-500" data-page="stock">
                     <i data-lucide="layers" class="w-5 h-5"></i> <span class="flex-1 text-left">สต็อก / เบิกสินค้า</span>
+                    <span id="desktop-badge-stock" class="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span>
                 </button>
                 
                 <button onclick="app.router('qc')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:bg-slate-50 text-slate-500" data-page="qc">
                     <i data-lucide="clipboard-check" class="w-5 h-5"></i> <span class="flex-1 text-left">ตรวจสอบ QC</span>
+                    <span id="desktop-badge-qc" class="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span>
                 </button>
                 
                 <button onclick="app.router('pack')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:bg-slate-50 text-slate-500" data-page="pack">
                     <i data-lucide="box" class="w-5 h-5"></i> <span class="flex-1 text-left">แพ็คสินค้า</span>
+                    <span id="desktop-badge-pack" class="bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span>
                 </button>
                 
                 <button onclick="app.router('ship')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:bg-slate-50 text-slate-500" data-page="ship">
                     <i data-lucide="truck" class="w-5 h-5"></i> <span class="flex-1 text-left">จัดส่ง</span>
+                    <span id="desktop-badge-ship" class="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span>
                 </button>
                 
                 <div class="pt-6 pb-2 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">ข้อมูล</div>
@@ -250,16 +254,19 @@
         <button onclick="app.router('stock')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400 relative" data-page="stock">
             <i data-lucide="layers" class="w-6 h-6"></i>
             <span class="text-[10px] font-medium">เบิก</span>
+            <span id="mobile-badge-stock" class="absolute top-1 right-3 min-w-[16px] h-4 flex items-center justify-center bg-orange-500 text-white text-[9px] font-bold px-1 rounded-full border border-white hidden">0</span>
         </button>
         
         <button onclick="app.router('qc')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400 relative" data-page="qc">
             <i data-lucide="clipboard-check" class="w-6 h-6"></i>
             <span class="text-[10px] font-medium">QC</span>
+            <span id="mobile-badge-qc" class="absolute top-1 right-3 min-w-[16px] h-4 flex items-center justify-center bg-rose-500 text-white text-[9px] font-bold px-1 rounded-full border border-white hidden">0</span>
         </button>
         
         <button onclick="app.router('pack')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400" data-page="pack">
             <i data-lucide="box" class="w-6 h-6"></i>
             <span class="text-[10px] font-medium">แพ็ค</span>
+            <span id="mobile-badge-pack" class="absolute top-1 right-3 min-w-[16px] h-4 flex items-center justify-center bg-blue-500 text-white text-[9px] font-bold px-1 rounded-full border border-white hidden">0</span>
         </button>
         
         <button onclick="app.router('history')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400" data-page="history"><i data-lucide="clock" class="w-6 h-6"></i><span class="text-[10px] font-medium">ประวัติ</span></button>
@@ -268,40 +275,95 @@
     <!-- =======================
          LOGIC (JAVASCRIPT)
     ======================== -->
-    <script>
-        const DB_KEY = 'warehouse_db_v7_5_new_name';
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Configuration
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const appFirebase = initializeApp(firebaseConfig);
+        const auth = getAuth(appFirebase);
+        const db = getFirestore(appFirebase);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // Const for DB Collection and Doc
+        const COLLECTION_NAME = 'warehouse_qc_db';
+        const DOC_ID = 'master'; 
 
         const app = {
             data: { orders: [] },
             activeTab: 'dashboard',
             tempPrintState: { selectedItems: [], totalQty: 0 },
-            
-            init() {
-                this.loadData();
-                if (this.data.orders.length === 0) this.seedData();
+            user: null, 
+
+            async init() {
+                // Initialize Firebase Auth
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (e) {
+                    console.error("Auth failed", e);
+                }
+                
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        this.user = user;
+                        // Listen to Firestore real-time updates
+                        const docRef = doc(db, 'artifacts', appId, 'public', 'data', COLLECTION_NAME, DOC_ID);
+                        onSnapshot(docRef, (snapshot) => {
+                            if (snapshot.exists()) {
+                                const newData = snapshot.data();
+                                if (newData && newData.orders) {
+                                    this.data = newData;
+                                    this.router(this.activeTab); 
+                                    this.updateBadges(); 
+                                }
+                            } else {
+                                // First time init: create doc with seed data
+                                this.seedData();
+                            }
+                        }, (error) => {
+                            console.error("Firestore sync error:", error);
+                        });
+                    }
+                });
+
+                // Set default view while loading
                 this.router('dashboard');
             },
 
-            loadData() {
-                const stored = localStorage.getItem(DB_KEY);
-                if (stored) this.data.orders = JSON.parse(stored);
+            async saveData() {
+                if (!this.user) return;
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', COLLECTION_NAME, DOC_ID);
+                    await setDoc(docRef, this.data);
+                } catch (e) {
+                    console.error("Save error:", e);
+                    this.ui.toast("บันทึกข้อมูลไม่สำเร็จ (ลองใหม่อีกครั้ง)", "error");
+                }
             },
-            saveData() {
-                localStorage.setItem(DB_KEY, JSON.stringify(this.data.orders));
-            },
+
             seedData() {
                 const now = new Date();
-                this.data.orders = [
-                    {
-                        id: 'ORD-001', docNo: 'PO-2023-001', customer: 'บริษัท เทคโซลูชั่น จำกัด', date: new Date(now - 86400000).toLocaleString('th-TH'),
-                        status: 'pending_qc',
-                        items: [
-                            { name: 'เมาส์ไร้สาย', qty: 20, unit: 'ชิ้น', picked: 20, picks: [{lot:'L1', qty:20}], passed: 0, failed: 0, qc_reason: '' },
-                            { name: 'คีย์บอร์ดเกมมิ่ง', qty: 10, unit: 'ชิ้น', picked: 10, picks: [{lot:'L2', qty:10}], passed: 0, failed: 0, qc_reason: '' }
-                        ],
-                        logs: [{ action: 'สร้างออเดอร์', time: new Date(now - 86400000).toLocaleString('th-TH'), user: 'ระบบ' }]
-                    }
-                ];
+                const initialData = {
+                    orders: [
+                        {
+                            id: 'ORD-001', docNo: 'PO-2023-001', customer: 'บริษัท เทคโซลูชั่น จำกัด', date: new Date(now - 86400000).toLocaleString('th-TH'),
+                            status: 'pending_qc',
+                            items: [
+                                { name: 'เมาส์ไร้สาย', qty: 20, unit: 'ชิ้น', picked: 20, picks: [{lot:'L1', qty:20}], passed: 0, failed: 0, qc_reason: '' },
+                                { name: 'คีย์บอร์ดเกมมิ่ง', qty: 10, unit: 'ชิ้น', picked: 10, picks: [{lot:'L2', qty:10}], passed: 0, failed: 0, qc_reason: '' }
+                            ],
+                            logs: [{ action: 'สร้างออเดอร์', time: new Date(now - 86400000).toLocaleString('th-TH'), user: 'ระบบ' }]
+                        }
+                    ]
+                };
+                // Set local then save cloud
+                this.data = initialData;
                 this.saveData();
             },
 
@@ -310,6 +372,8 @@
 
                 const main = document.getElementById('main-view');
                 if(!main) return;
+                
+                // Clear content first
                 main.innerHTML = ''; 
                 window.scrollTo(0,0);
 
@@ -343,6 +407,36 @@
                     case 'create': this.views.renderCreateOrder(main); break;
                 }
                 lucide.createIcons();
+            },
+
+            updateBadges() {
+                const counts = {
+                    stock: this.data.orders.filter(o => o.status === 'pending_stock').length,
+                    qc: this.data.orders.filter(o => o.status === 'pending_qc').length,
+                    pack: this.data.orders.filter(o => o.status === 'pending_pack').length,
+                    ship: this.data.orders.filter(o => o.status === 'ready_ship').length
+                };
+
+                const updateBadge = (id, count) => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        // Null check before accessing classList or innerText
+                        el.innerText = count > 99 ? '99+' : count;
+                        if (count > 0) el.classList.remove('hidden');
+                        else el.classList.add('hidden');
+                    }
+                };
+
+                // Mobile
+                updateBadge('mobile-badge-stock', counts.stock);
+                updateBadge('mobile-badge-qc', counts.qc);
+                updateBadge('mobile-badge-pack', counts.pack);
+                
+                // Desktop
+                updateBadge('desktop-badge-stock', counts.stock);
+                updateBadge('desktop-badge-qc', counts.qc);
+                updateBadge('desktop-badge-pack', counts.pack);
+                updateBadge('desktop-badge-ship', counts.ship);
             },
 
             views: {
