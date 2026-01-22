@@ -84,32 +84,12 @@
         }
         .btn-main:active { transform: scale(0.98); }
         
-        .btn-blue { 
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); 
-            box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.4);
-        }
-        .btn-orange { 
-            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); 
-            box-shadow: 0 10px 20px -5px rgba(249, 115, 22, 0.4);
-        }
-        .btn-rose { 
-            background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%); 
-            box-shadow: 0 10px 20px -5px rgba(244, 63, 94, 0.4);
-        }
-        .btn-emerald { 
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
-            box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
-        }
-        .btn-slate { 
-            background: linear-gradient(135deg, #64748b 0%, #475569 100%); 
-            box-shadow: 0 10px 20px -5px rgba(71, 85, 105, 0.4);
-        }
-        .btn-grey {
-            background-color: #f1f5f9;
-            color: #475569;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            border: 1px solid #e2e8f0;
-        }
+        .btn-blue { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.4); }
+        .btn-orange { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); box-shadow: 0 10px 20px -5px rgba(249, 115, 22, 0.4); }
+        .btn-rose { background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%); box-shadow: 0 10px 20px -5px rgba(244, 63, 94, 0.4); }
+        .btn-emerald { background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4); }
+        .btn-slate { background: linear-gradient(135deg, #64748b 0%, #475569 100%); box-shadow: 0 10px 20px -5px rgba(71, 85, 105, 0.4); }
+        .btn-grey { background-color: #f1f5f9; color: #475569; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; }
         .btn-grey:hover { background-color: #e2e8f0; }
 
         .input-field {
@@ -120,44 +100,18 @@
             transition: all 0.2s;
             box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
         }
-        .input-field:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
+        .input-field:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
 
         /* -------------------------------------------
-           REAL PRINT STYLES (4x6 Inches / 100x150mm)
+           REAL PRINT STYLES
            ------------------------------------------- */
         @media print {
             body > * { display: none !important; }
-            #printable-area {
-                display: block !important;
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                margin: 0;
-                padding: 0;
-                background-color: white;
-            }
+            #printable-area { display: block !important; position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 0; background-color: white; }
             #printable-area * { visibility: visible; }
-            * {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            @page {
-                size: 100mm 150mm;
-                margin: 0;
-            }
-            .print-page-break { 
-                page-break-after: always;
-                page-break-inside: avoid;
-                width: 100mm;
-                height: 149mm;
-                overflow: hidden;
-            }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            @page { size: 100mm 150mm; margin: 0; }
+            .print-page-break { page-break-after: always; page-break-inside: avoid; width: 100mm; height: 149mm; overflow: hidden; }
         }
     </style>
 </head>
@@ -182,8 +136,36 @@
         </div>
     </div>
 
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="fixed inset-0 z-50 bg-slate-50 flex flex-col items-center justify-center p-6 hidden">
+        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 border border-slate-100">
+            <div class="flex flex-col items-center mb-8">
+                <div class="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-400 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 mb-4">
+                    <i data-lucide="package-check" class="w-8 h-8 text-white"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-slate-800">เข้าสู่ระบบ</h1>
+                <p class="text-sm text-slate-400">Warehouse QC System</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-slate-500 mb-1.5 block ml-1">ชื่อผู้ใช้</label>
+                    <input type="text" id="login-username" class="input-field w-full" placeholder="username">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-500 mb-1.5 block ml-1">รหัสผ่าน</label>
+                    <input type="password" id="login-password" class="input-field w-full" placeholder="password">
+                </div>
+                <button onclick="app.auth.login()" class="btn-main btn-blue mt-6 shadow-lg shadow-blue-200">
+                    เข้าใช้งาน
+                </button>
+            </div>
+        </div>
+        <p class="mt-8 text-xs text-slate-400">รหัสเริ่มต้น: 1234</p>
+    </div>
+
     <!-- HEADER -->
-    <header class="glass h-16 fixed top-0 w-full z-30 flex items-center justify-between px-4 lg:px-8 transition-all duration-300">
+    <header id="main-header" class="glass h-16 fixed top-0 w-full z-30 flex items-center justify-between px-4 lg:px-8 transition-all duration-300 hidden">
         <div class="flex items-center gap-3">
             <div class="bg-gradient-to-br from-blue-600 to-blue-400 text-white p-2 rounded-xl shadow-lg shadow-blue-200">
                 <i data-lucide="package-check" class="w-5 h-5"></i>
@@ -193,46 +175,35 @@
             </div>
         </div>
         <div class="flex items-center gap-4">
-            <div class="hidden md:flex items-center gap-3 pl-4 border-l border-slate-200">
+            <div class="md:hidden">
+                 <button class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 border border-slate-200 active:scale-95 transition-transform" onclick="app.auth.showProfileMenu()">
+                    <i data-lucide="user" class="w-5 h-5"></i>
+                 </button>
+            </div>
+            <div class="hidden md:flex items-center gap-3 pl-4 border-l border-slate-200 cursor-pointer hover:bg-slate-50 p-1 rounded-xl transition-colors" onclick="app.auth.showProfileMenu()">
                 <div class="text-right">
-                    <p class="text-xs font-bold text-slate-700">สมชาย ใจดี</p>
-                    <p class="text-[10px] text-slate-400">หัวหน้างาน</p>
+                    <p id="header-username" class="text-xs font-bold text-slate-700">สมชาย ใจดี</p>
+                    <p id="header-role" class="text-[10px] text-slate-400">หัวหน้างาน</p>
                 </div>
-                <div class="w-9 h-9 rounded-full bg-slate-200 p-0.5 border border-slate-200 shadow-sm">
-                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Avatar" class="rounded-full h-full w-full">
+                <div class="w-9 h-9 rounded-full bg-slate-200 p-0.5 border border-slate-200 shadow-sm overflow-hidden">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Avatar" class="h-full w-full">
                 </div>
             </div>
         </div>
     </header>
 
     <!-- MAIN LAYOUT -->
-    <div class="flex h-full pt-16">
+    <div id="main-layout" class="flex h-full pt-16 hidden">
         <!-- SIDEBAR -->
         <aside class="hidden lg:flex flex-col w-64 bg-white border-r border-slate-200 h-full shadow-[2px_0_20px_rgba(0,0,0,0.02)] z-20">
-            <nav class="flex-1 p-4 space-y-1">
-                <button onclick="app.router('dashboard')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:bg-slate-50 text-slate-500" data-page="dashboard"><i data-lucide="layout-grid" class="w-5 h-5"></i> ภาพรวม</button>
-                
-                <div class="pt-6 pb-2 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">การดำเนินงาน</div>
-                
-                <button onclick="app.router('stock')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:bg-slate-50 text-slate-500" data-page="stock">
-                    <i data-lucide="layers" class="w-5 h-5"></i> <span class="flex-1 text-left">สต็อก / เบิกสินค้า</span>
-                </button>
-                
-                <button onclick="app.router('qc')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:bg-slate-50 text-slate-500" data-page="qc">
-                    <i data-lucide="clipboard-check" class="w-5 h-5"></i> <span class="flex-1 text-left">ตรวจสอบ QC</span>
-                </button>
-                
-                <button onclick="app.router('pack')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:bg-slate-50 text-slate-500" data-page="pack">
-                    <i data-lucide="box" class="w-5 h-5"></i> <span class="flex-1 text-left">แพ็คสินค้า</span>
-                </button>
-                
-                <button onclick="app.router('ship')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:bg-slate-50 text-slate-500" data-page="ship">
-                    <i data-lucide="truck" class="w-5 h-5"></i> <span class="flex-1 text-left">จัดส่ง</span>
-                </button>
-                
-                <div class="pt-6 pb-2 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">ข้อมูล</div>
-                <button onclick="app.router('history')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:bg-slate-50 text-slate-500" data-page="history"><i data-lucide="clock" class="w-5 h-5"></i> ประวัติการทำงาน</button>
+            <nav class="flex-1 p-4 space-y-1" id="desktop-nav">
+                <!-- Nav items injected by JS -->
             </nav>
+            <div class="p-4 border-t border-slate-100">
+                <button onclick="app.auth.logout()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-50 transition-all">
+                    <i data-lucide="log-out" class="w-5 h-5"></i> ออกจากระบบ
+                </button>
+            </div>
         </aside>
 
         <!-- MAIN CONTENT AREA -->
@@ -240,19 +211,15 @@
             <!-- Dynamic Content -->
         </main>
 
-        <!-- FLOATING ACTION BUTTON (Create Order) -->
-        <button onclick="app.router('create')" class="fixed bottom-24 lg:bottom-10 right-4 lg:right-10 w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-500 text-white rounded-full shadow-lg shadow-blue-300/50 flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-40 group">
+        <!-- FLOATING ACTION BUTTON -->
+        <button id="fab-create" onclick="app.router('create')" class="fixed bottom-24 lg:bottom-10 right-4 lg:right-10 w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-500 text-white rounded-full shadow-lg shadow-blue-300/50 flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-40 group hidden">
             <i data-lucide="plus" class="w-8 h-8 group-hover:rotate-90 transition-transform duration-300"></i>
         </button>
     </div>
 
     <!-- BOTTOM NAV (Mobile) -->
-    <nav id="mobile-nav" class="lg:hidden fixed bottom-0 w-full bg-white/95 backdrop-blur border-t border-slate-200 flex justify-around items-center h-[70px] z-40 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.03)] transition-transform duration-300">
-        <button onclick="app.router('dashboard')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400" data-page="dashboard"><i data-lucide="layout-grid" class="w-6 h-6"></i><span class="text-[10px] font-medium">หน้าหลัก</span></button>
-        <button onclick="app.router('stock')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400 relative" data-page="stock"><i data-lucide="layers" class="w-6 h-6"></i><span class="text-[10px] font-medium">เบิก</span></button>
-        <button onclick="app.router('qc')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400 relative" data-page="qc"><i data-lucide="clipboard-check" class="w-6 h-6"></i><span class="text-[10px] font-medium">QC</span></button>
-        <button onclick="app.router('pack')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400" data-page="pack"><i data-lucide="box" class="w-6 h-6"></i><span class="text-[10px] font-medium">แพ็ค</span></button>
-        <button onclick="app.router('history')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400" data-page="history"><i data-lucide="clock" class="w-6 h-6"></i><span class="text-[10px] font-medium">ประวัติ</span></button>
+    <nav id="mobile-nav" class="lg:hidden fixed bottom-0 w-full bg-white/95 backdrop-blur border-t border-slate-200 flex justify-around items-center h-[70px] z-40 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.03)] transition-transform duration-300 hidden">
+        <!-- Mobile Nav items injected by JS -->
     </nav>
 
     <!-- =======================
@@ -268,18 +235,16 @@
         let useLocalStorage = false; 
         
         // --- 🟢 ส่วนตั้งค่า Firebase ---
-        // ใส่ Config ที่ได้จาก Firebase Console ตรงนี้
         const myFirebaseConfig = {
-             apiKey: "AIzaSyC_gvuDL3XqwBpU1Ns3VSILDOCaf9n6Uik",
-             authDomain: "warehouse-qc-management-system.firebaseapp.com",
-             projectId: "warehouse-qc-management-system",
-             storageBucket: "warehouse-qc-management-system.firebasestorage.app",
-             messagingSenderId: "1033934968682",
-             appId: "1:1033934968682:web:9a4cfd06d0d5335d527713",
-             measurementId: "G-JX6KLL0PJS"
+            apiKey: "AIzaSyC_gvuDL3XqwBpU1Ns3VSILDOCaf9n6Uik",
+            authDomain: "warehouse-qc-management-system.firebaseapp.com",
+            projectId: "warehouse-qc-management-system",
+            storageBucket: "warehouse-qc-management-system.firebasestorage.app",
+            messagingSenderId: "1033934968682",
+            appId: "1:1033934968682:web:9a4cfd06d0d5335d527713",
+            measurementId: "G-JX6KLL0PJS"
         };
         
-        // Setup Config
         try {
             if (myFirebaseConfig) {
                 const appFirebase = initializeApp(myFirebaseConfig);
@@ -297,20 +262,58 @@
         const COLLECTION_NAME = 'warehouse_qc_db';
         const DOC_ID = 'master'; 
         const LOCAL_STORAGE_KEY = 'warehouse_qc_data_offline';
+        
+        const ROLES = {
+            manager: { name: 'หัวหน้างาน', allowed: ['dashboard', 'stock', 'qc', 'pack', 'ship', 'history', 'create', 'detail'] },
+            stock: { name: 'ทีม Stock', allowed: ['dashboard', 'stock', 'history', 'detail'] }, 
+            qc: { name: 'ทีม QC', allowed: ['dashboard', 'qc', 'history', 'detail'] },
+            pack: { name: 'ทีม Pack', allowed: ['dashboard', 'pack', 'ship', 'history', 'detail'] }
+        };
+
+        const MENU_ITEMS = [
+            { id: 'dashboard', label: 'ภาพรวม', icon: 'layout-grid', mobile: true, badge: false },
+            { id: 'stock', label: 'เบิกสินค้า', icon: 'layers', mobile: true, badge: true, badgeColor: 'bg-orange-500' },
+            { id: 'qc', label: 'QC', icon: 'clipboard-check', mobile: true, badge: true, badgeColor: 'bg-rose-500' },
+            { id: 'pack', label: 'แพ็ค', icon: 'box', mobile: true, badge: true, badgeColor: 'bg-blue-500' },
+            { id: 'ship', label: 'จัดส่ง', icon: 'truck', mobile: false, badge: true, badgeColor: 'bg-emerald-500' }, 
+            { id: 'history', label: 'ประวัติ', icon: 'clock', mobile: true, badge: false }
+        ];
 
         const app = {
-            data: { orders: [] },
+            data: { 
+                orders: [],
+                users: {
+                    'manager': { pass: '1234', role: 'manager', name: 'หัวหน้าสมชาย' },
+                    'stock': { pass: '1234', role: 'stock', name: 'ทีมคลังสินค้า' },
+                    'qc': { pass: '1234', role: 'qc', name: 'ทีม QC' },
+                    'pack': { pass: '1234', role: 'pack', name: 'ทีมแพ็ค/ส่ง' }
+                }
+            },
             activeTab: 'dashboard',
             currentPage: 'dashboard',
             currentParam: null,
             tempPrintState: { selectedItems: [], totalQty: 0 },
             user: null, 
+            currentUser: null,
 
             async init() {
+                // Setup Login Enter Key
+                document.getElementById('login-username').addEventListener('keyup', (e) => {
+                    if (e.key === 'Enter') document.getElementById('login-password').focus();
+                });
+                document.getElementById('login-password').addEventListener('keyup', (e) => {
+                    if (e.key === 'Enter') this.auth.login();
+                });
+
                 if (useLocalStorage) {
                     this.loadDataLocal();
-                    if (!this.data.orders || this.data.orders.length === 0) this.seedData();
-                    this.router('dashboard');
+                    const sessionUser = localStorage.getItem('warehouse_session_user');
+                    if (sessionUser) {
+                        this.currentUser = JSON.parse(sessionUser);
+                        this.startApp();
+                    } else {
+                        this.showLogin();
+                    }
                     return;
                 }
 
@@ -318,11 +321,8 @@
                     await signInAnonymously(auth);
                 } catch (e) {
                     console.error("Auth failed", e);
-                    console.warn("Switching to Offline Mode due to Auth failure");
                     useLocalStorage = true;
-                    this.loadDataLocal();
-                    if (!this.data.orders || this.data.orders.length === 0) this.seedData();
-                    this.router('dashboard');
+                    this.init(); 
                     return; 
                 }
                 
@@ -333,27 +333,142 @@
                         onSnapshot(docRef, (snapshot) => {
                             if (snapshot.exists()) {
                                 const newData = snapshot.data();
-                                if (newData && newData.orders) {
+                                if (newData) {
                                     this.data = newData;
-                                    
-                                    // Prevent refresh if user is editing
-                                    const activeEl = document.activeElement;
-                                    const isEditing = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
+                                    if (!this.data.users) {
+                                        this.data.users = {
+                                            'manager': { pass: '1234', role: 'manager', name: 'หัวหน้าสมชาย' },
+                                            'stock': { pass: '1234', role: 'stock', name: 'ทีมคลังสินค้า' },
+                                            'qc': { pass: '1234', role: 'qc', name: 'ทีม QC' },
+                                            'pack': { pass: '1234', role: 'pack', name: 'ทีมแพ็ค/ส่ง' }
+                                        };
+                                    }
+                                    if (!this.data.orders) this.data.orders = [];
 
-                                    if (!isEditing) {
-                                        this.router(this.currentPage || this.activeTab, this.currentParam);
+                                    const sessionUser = localStorage.getItem('warehouse_session_user');
+                                    if (sessionUser && !this.currentUser) {
+                                        this.currentUser = JSON.parse(sessionUser);
+                                        this.startApp();
+                                    } else if (!this.currentUser) {
+                                        this.showLogin();
+                                    } else {
+                                        // No auto-route to prevent jump, but update UI
+                                         const activeEl = document.activeElement;
+                                         const isEditing = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
+                                         if (!isEditing) {
+                                             this.router(this.currentPage || 'dashboard', this.currentParam);
+                                         }
+                                         this.updateBadges(); 
                                     }
                                 }
                             } else {
                                 this.seedData();
                             }
-                        }, (error) => {
-                            console.error("Firestore sync error:", error);
                         });
                     }
                 });
+            },
 
+            showLogin() {
+                document.getElementById('login-screen').classList.remove('hidden');
+                document.getElementById('main-header').classList.add('hidden');
+                document.getElementById('main-layout').classList.add('hidden');
+                document.getElementById('mobile-nav').classList.add('hidden');
+            },
+
+            startApp() {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('main-header').classList.remove('hidden');
+                document.getElementById('main-layout').classList.remove('hidden');
+                
+                const roleInfo = ROLES[this.currentUser.role];
+                document.getElementById('header-username').innerText = this.currentUser.name;
+                document.getElementById('header-role').innerText = roleInfo ? roleInfo.name : '-';
+                
+                this.renderNavigation();
+                this.updateBadges();
                 this.router('dashboard');
+            },
+
+            renderNavigation() {
+                const userRole = this.currentUser.role;
+                const allowedPages = ROLES[userRole]?.allowed || [];
+                const isManager = userRole === 'manager';
+
+                // Desktop Sidebar
+                const desktopNav = document.getElementById('desktop-nav');
+                desktopNav.innerHTML = MENU_ITEMS.map(item => {
+                    if (isManager || allowedPages.includes(item.id)) {
+                        let badgeHtml = '';
+                        if (item.badge) {
+                            badgeHtml = `<span id="desktop-badge-${item.id}" class="${item.badgeColor} text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span>`;
+                        }
+                        return `
+                        <button onclick="app.router('${item.id}')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:bg-slate-50 text-slate-500" data-page="${item.id}">
+                            <i data-lucide="${item.icon}" class="w-5 h-5"></i> 
+                            <span class="flex-1 text-left">${item.label}</span>
+                            ${badgeHtml}
+                        </button>`;
+                    }
+                    return '';
+                }).join('');
+
+                // Mobile Nav
+                const mobileNav = document.getElementById('mobile-nav');
+                mobileNav.innerHTML = MENU_ITEMS.filter(i => i.mobile).map(item => {
+                    if (isManager || allowedPages.includes(item.id)) {
+                        let badgeHtml = '';
+                        if (item.badge) {
+                            badgeHtml = `<span id="mobile-badge-${item.id}" class="absolute top-1 right-3 min-w-[16px] h-4 flex items-center justify-center ${item.badgeColor} text-white text-[9px] font-bold px-1 rounded-full border border-white hidden">0</span>`;
+                        }
+                        return `
+                        <button onclick="app.router('${item.id}')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400 relative" data-page="${item.id}">
+                            <i data-lucide="${item.icon}" class="w-6 h-6"></i>
+                            <span class="text-[10px] font-medium">${item.label}</span>
+                            ${badgeHtml}
+                        </button>`;
+                    }
+                    return '';
+                }).join('');
+                
+                const fab = document.getElementById('fab-create');
+                if (isManager || allowedPages.includes('create')) {
+                     // handled in router
+                } else {
+                    if(fab) fab.remove();
+                }
+
+                mobileNav.classList.remove('hidden');
+                lucide.createIcons();
+            },
+            
+            updateBadges() {
+                if (!this.data || !this.data.orders) return;
+
+                const counts = {
+                    stock: this.data.orders.filter(o => o.status === 'pending_stock').length,
+                    qc: this.data.orders.filter(o => o.status === 'pending_qc').length,
+                    pack: this.data.orders.filter(o => o.status === 'pending_pack').length,
+                    ship: this.data.orders.filter(o => o.status === 'ready_ship').length
+                };
+
+                const update = (id, count) => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.innerText = count > 99 ? '99+' : count;
+                        if (count > 0) el.classList.remove('hidden');
+                        else el.classList.add('hidden');
+                    }
+                };
+
+                update('desktop-badge-stock', counts.stock);
+                update('desktop-badge-qc', counts.qc);
+                update('desktop-badge-pack', counts.pack);
+                update('desktop-badge-ship', counts.ship);
+
+                update('mobile-badge-stock', counts.stock);
+                update('mobile-badge-qc', counts.qc);
+                update('mobile-badge-pack', counts.pack);
             },
 
             loadDataLocal() {
@@ -361,29 +476,32 @@
                 if (stored) {
                     this.data = JSON.parse(stored);
                 } else {
-                    this.data = { orders: [] };
+                    this.data = { orders: [], users: {} };
                 }
             },
 
             async saveData() {
                 if (useLocalStorage) {
                     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(this.data));
+                    this.updateBadges();
                     return;
                 }
-
                 if (!this.user) return;
                 try {
                     const docRef = doc(db, 'artifacts', appId, 'public', 'data', COLLECTION_NAME, DOC_ID);
                     await setDoc(docRef, this.data);
-                } catch (e) {
-                    console.error("Save error:", e);
-                    this.ui.toast("บันทึกข้อมูลไม่สำเร็จ (ลองใหม่อีกครั้ง)", "error");
-                }
+                } catch (e) { console.error(e); }
             },
 
             seedData() {
                 const now = new Date();
                 const initialData = {
+                    users: {
+                        'manager': { pass: '1234', role: 'manager', name: 'หัวหน้าสมชาย' },
+                        'stock': { pass: '1234', role: 'stock', name: 'ทีมคลังสินค้า' },
+                        'qc': { pass: '1234', role: 'qc', name: 'ทีม QC' },
+                        'pack': { pass: '1234', role: 'pack', name: 'ทีมแพ็ค/ส่ง' }
+                    },
                     orders: [
                         {
                             id: 'ORD-001', docNo: 'PO-2023-001', customer: 'บริษัท เทคโซลูชั่น จำกัด', date: new Date(now - 86400000).toLocaleString('th-TH'),
@@ -400,27 +518,119 @@
                 this.saveData();
             },
 
+            auth: {
+                login() {
+                    const u = document.getElementById('login-username').value;
+                    const p = document.getElementById('login-password').value;
+                    
+                    if (app.data.users && app.data.users[u] && app.data.users[u].pass === p) {
+                        app.currentUser = { username: u, ...app.data.users[u] };
+                        localStorage.setItem('warehouse_session_user', JSON.stringify(app.currentUser));
+                        app.startApp();
+                        app.ui.toast(`ยินดีต้อนรับ ${app.currentUser.name}`);
+                    } else {
+                        app.ui.toast('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'error');
+                    }
+                },
+                logout() {
+                    app.currentUser = null;
+                    localStorage.removeItem('warehouse_session_user');
+                    location.reload();
+                },
+                showProfileMenu() {
+                    const html = `
+                        <div class="space-y-4">
+                            <div class="text-center">
+                                <div class="w-16 h-16 bg-slate-200 rounded-full mx-auto mb-2 overflow-hidden">
+                                     <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Avatar" class="h-full w-full">
+                                </div>
+                                <h3 class="font-bold text-lg text-slate-800" id="profile-name-display">${app.currentUser.name}</h3>
+                                <p class="text-sm text-slate-500">ตำแหน่ง: ${ROLES[app.currentUser.role].name}</p>
+                            </div>
+                            <hr class="border-slate-100">
+                             <div>
+                                <label class="text-xs font-bold text-slate-500 mb-1 block">เปลี่ยนชื่อผู้ใช้</label>
+                                <input type="text" id="new-name" class="input-field w-full" placeholder="${app.currentUser.name}" value="${app.currentUser.name}">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 mb-1 block">เปลี่ยนรหัสผ่านใหม่ (ถ้าต้องการ)</label>
+                                <input type="password" id="new-password" class="input-field w-full" placeholder="ระบุรหัสผ่านใหม่">
+                            </div>
+                            <div class="pt-2">
+                                <button onclick="app.auth.logout()" class="w-full flex items-center justify-center gap-2 h-12 rounded-xl border border-rose-200 text-rose-600 font-bold hover:bg-rose-50 transition-colors">
+                                    <i data-lucide="log-out" class="w-4 h-4"></i> ออกจากระบบ
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    app.ui.modalHTML('ข้อมูลผู้ใช้', html, () => {
+                        const newName = document.getElementById('new-name').value;
+                        const newPass = document.getElementById('new-password').value;
+                        let updated = false;
+
+                        if (newName && newName !== app.currentUser.name) {
+                            app.data.users[app.currentUser.username].name = newName;
+                            app.currentUser.name = newName;
+                            // Update UI
+                            document.getElementById('header-username').innerText = newName;
+                            updated = true;
+                        }
+
+                        if (newPass) {
+                            app.data.users[app.currentUser.username].pass = newPass;
+                            updated = true;
+                        }
+
+                        if (updated) {
+                            localStorage.setItem('warehouse_session_user', JSON.stringify(app.currentUser));
+                            app.saveData();
+                            app.ui.toast('บันทึกข้อมูลเรียบร้อย');
+                        }
+                    }, 'บันทึก');
+                }
+            },
+
             router(page, param = null) {
+                if(!this.currentUser) return; // Guard
+
+                const main = document.getElementById('main-view');
+                if(!main) return;
+
+                // --- SCROLL PRESERVATION LOGIC START ---
+                let previousScrollTop = 0;
+                const isSameView = (this.currentPage === page && this.currentParam === param);
+                
+                if (isSameView) {
+                    previousScrollTop = main.scrollTop;
+                }
+                // --- SCROLL PRESERVATION LOGIC END ---
+
                 this.currentPage = page;
                 this.currentParam = param;
                 
                 if (page !== 'detail' && page !== 'create') this.activeTab = page;
 
-                const main = document.getElementById('main-view');
-                if(!main) return;
-                
                 main.innerHTML = ''; 
-                window.scrollTo(0,0);
+                
+                // Only scroll to top if we are navigating to a NEW page
+                if (!isSameView) {
+                    window.scrollTo(0,0);
+                    main.scrollTop = 0;
+                }
 
                 const mobileNav = document.getElementById('mobile-nav');
-                const fab = document.querySelector('button[onclick="app.router(\'create\')"]');
+                const fab = document.getElementById('fab-create');
                 
                 if (page === 'detail' || page === 'create') {
                     mobileNav.classList.add('translate-y-full');
                     if(fab) fab.classList.add('hidden');
                 } else {
                     mobileNav.classList.remove('translate-y-full');
-                    if(fab) fab.classList.remove('hidden');
+                    if(fab && (this.currentUser.role === 'manager')) { 
+                         fab.classList.remove('hidden');
+                    } else if(fab) {
+                         fab.classList.add('hidden');
+                    }
                 }
 
                 document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(el => {
@@ -442,9 +652,18 @@
                     case 'create': this.views.renderCreateOrder(main); break;
                 }
                 lucide.createIcons();
+
+                // --- RESTORE SCROLL ---
+                if (isSameView) {
+                    // Use setTimeout to ensure DOM is rendered before setting scroll
+                    setTimeout(() => {
+                         main.scrollTop = previousScrollTop;
+                    }, 0);
+                }
             },
 
             views: {
+                // ... (ModalHTML logic remains)
                 modalHTML(title, html, onConfirm, btnText='ยืนยัน') {
                     const overlay = document.getElementById('modal-overlay');
                     const content = document.getElementById('modal-content');
@@ -479,7 +698,8 @@
                         close(); 
                     };
                 },
-
+                
+                // ... (History, Create, Dashboard, List, Detail renders remain same)
                 renderHistory(container) {
                     container.innerHTML = `
                         <div class="p-4 lg:p-8 space-y-6 animate-fade-in max-w-4xl mx-auto pb-32">
@@ -520,8 +740,8 @@
                         const listHtml = filtered.length === 0 
                             ? `<div class="text-center py-10 text-slate-400">ไม่พบข้อมูล</div>`
                             : filtered.map(o => `
-                                <div onclick="app.router('detail', '${o.id}')" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:shadow-md transition-all active:scale-[0.99]">
-                                    <div class="flex items-start gap-4">
+                                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:shadow-md transition-all">
+                                    <div class="flex items-start gap-4 flex-1 cursor-pointer" onclick="app.router('detail', '${o.id}')">
                                         <div class="p-3 bg-slate-50 rounded-xl text-slate-400">
                                             <i data-lucide="file-clock" class="w-6 h-6"></i>
                                         </div>
@@ -532,11 +752,19 @@
                                         </div>
                                     </div>
                                     <div class="flex items-center justify-between md:justify-end w-full md:w-auto gap-4 pt-4 md:pt-0 border-t md:border-t-0 border-slate-50">
-                                        <div class="text-right">
+                                        <div class="text-right cursor-pointer" onclick="app.router('detail', '${o.id}')">
                                             <div class="text-xs text-slate-400 mb-1">สถานะปัจจุบัน</div>
                                             ${app.ui.badge(o.status)}
                                         </div>
-                                        <i data-lucide="chevron-right" class="w-5 h-5 text-slate-300"></i>
+                                        
+                                        <div class="flex items-center gap-3">
+                                            ${app.currentUser.role === 'manager' ? 
+                                                `<button onclick="event.stopPropagation(); app.logic.deleteOrder('${o.id}')" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="ลบเอกสาร">
+                                                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                                </button>` 
+                                                : ''}
+                                            <i data-lucide="chevron-right" class="w-5 h-5 text-slate-300 cursor-pointer" onclick="app.router('detail', '${o.id}')"></i>
+                                        </div>
                                     </div>
                                 </div>
                             `).join('');
@@ -557,7 +785,6 @@
                                 <button onclick="app.router(app.activeTab)" class="p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
                                 <h2 class="font-bold text-slate-800 text-lg">สร้างออเดอร์ใหม่</h2>
                             </div>
-                            
                             <div class="p-5 space-y-6 pb-40 max-w-2xl mx-auto w-full">
                                 <div class="bg-white p-5 rounded-3xl shadow-soft border border-slate-100 space-y-4">
                                     <h3 class="font-bold text-slate-700 flex items-center gap-2"><i data-lucide="file-text" class="w-5 h-5 text-brand-500"></i> ข้อมูลเอกสาร</h3>
@@ -576,7 +803,6 @@
                                         <input type="text" id="new-customer" class="input-field w-full text-lg" placeholder="ระบุชื่อลูกค้า...">
                                     </div>
                                 </div>
-
                                 <div class="bg-white p-5 rounded-3xl shadow-soft border border-slate-100 space-y-4">
                                     <div class="flex justify-between items-center">
                                         <h3 class="font-bold text-slate-700 flex items-center gap-2"><i data-lucide="package" class="w-5 h-5 text-brand-500"></i> รายการสินค้า</h3>
@@ -587,7 +813,6 @@
                                     </button>
                                 </div>
                             </div>
-
                             <div class="fixed lg:absolute bottom-0 w-full lg:w-auto left-0 right-0 bg-white/90 backdrop-blur border-t border-slate-200 p-5 z-50 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
                                 <button onclick="app.logic.submitNewOrder()" class="btn-main btn-blue">บันทึกออเดอร์</button>
                             </div>
@@ -606,7 +831,6 @@
                         ship: app.data.orders.filter(o => o.status === 'ready_ship').length
                     };
                     const recent = app.data.orders.slice(0, 5);
-
                     container.innerHTML = `
                         <div class="p-4 lg:p-8 space-y-6 animate-fade-in max-w-5xl mx-auto">
                             <h2 class="text-2xl font-bold text-slate-800">ภาพรวม (Dashboard)</h2>
@@ -639,7 +863,6 @@
 
                 renderList(container, status, title, icon, colorClass) {
                     const list = app.data.orders.filter(o => o.status === status);
-                    
                     let iconBg = 'bg-slate-100 text-slate-600';
                     if (status === 'pending_stock') iconBg = 'bg-orange-100 text-orange-600';
                     if (status === 'pending_qc') iconBg = 'bg-rose-100 text-rose-600';
@@ -656,7 +879,6 @@
                                 ${list.length === 0 ? `<div class="text-center py-20 text-slate-400 bg-white rounded-3xl border border-dashed border-slate-200"><div class="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"><i data-lucide="inbox" class="w-10 h-10 opacity-30"></i></div><p>ไม่พบออเดอร์ในสถานะนี้</p></div>` : list.map(o => {
                                     const isRework = o.docNo.includes('(Rework)');
                                     const displayDocNo = o.docNo.replace('(Rework)', '').trim();
-                                    
                                     return `
                                     <div onclick="app.router('detail', '${o.id}')" class="bg-white p-6 rounded-3xl shadow-soft border border-slate-100 active:scale-[0.98] transition-all cursor-pointer hover:shadow-lg hover:border-brand-200 relative overflow-hidden group">
                                         ${isRework ? '<div class="absolute top-0 right-0 bg-red-500 text-white text-[10px] px-3 py-1 rounded-bl-xl font-bold shadow-md z-10 flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3 h-3"></i> งานแก้ (Rework)</div>' : ''}
@@ -759,10 +981,10 @@
                                             <div class="flex gap-3 items-center animate-slide-up group">
                                                 <div class="relative flex-1">
                                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i data-lucide="scan-barcode" class="w-4 h-4 text-slate-400 group-focus-within:text-brand-500 transition-colors"></i></div>
-                                                    <input type="text" placeholder="ระบุ Lot" value="${pick.lot}" oninput="app.logic.updatePick('${order.id}', ${idx}, ${pIdx}, 'lot', this.value)" class="w-full pl-10 pr-3 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-100 focus:border-brand-400 outline-none transition-all placeholder-slate-300 shadow-sm">
+                                                    <input type="text" placeholder="ระบุ Lot" value="${pick.lot}" oninput="app.logic.updatePick('${order.id}', ${idx}, ${pIdx}, 'lot', this.value, false)" onchange="app.saveData()" class="w-full pl-10 pr-3 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-100 focus:border-brand-400 outline-none transition-all placeholder-slate-300 shadow-sm">
                                                 </div>
                                                 <div class="w-24 relative">
-                                                    <input type="number" inputmode="numeric" onclick="this.select()" placeholder="0" value="${pick.qty}" oninput="app.logic.updatePick('${order.id}', ${idx}, ${pIdx}, 'qty', this.value)" class="w-full py-3 text-center text-sm font-bold bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-100 focus:border-brand-400 outline-none transition-all placeholder-slate-300 shadow-sm">
+                                                    <input type="number" inputmode="numeric" onclick="this.select()" placeholder="0" value="${pick.qty}" oninput="app.logic.updatePick('${order.id}', ${idx}, ${pIdx}, 'qty', this.value, false)" onchange="app.saveData()" class="w-full py-3 text-center text-sm font-bold bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-100 focus:border-brand-400 outline-none transition-all placeholder-slate-300 shadow-sm">
                                                 </div>
                                                 <button onclick="app.logic.removePick('${order.id}', ${idx}, ${pIdx})" class="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors border border-transparent hover:border-red-100"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
                                             </div>
@@ -802,20 +1024,20 @@
                                             <!-- Pass Input -->
                                             <div class="flex-1 bg-emerald-50/30 p-4 rounded-2xl border border-emerald-100 transition-colors focus-within:border-emerald-300 focus-within:bg-emerald-50 focus-within:shadow-sm">
                                                 <label class="text-xs font-bold text-emerald-700 mb-2 flex items-center gap-1.5 uppercase tracking-wide"><div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> ผ่าน (Pass)</label>
-                                                <input id="qc-input-passed-${idx}" type="number" inputmode="numeric" value="${item.passed}" oninput="app.logic.setQC('${order.id}', ${idx}, 'passed', this.value)" onclick="this.select()" class="w-full text-center text-3xl font-bold text-emerald-600 bg-white border border-emerald-200 rounded-xl py-3 outline-none focus:ring-4 focus:ring-emerald-100 focus:border-emerald-400 transition-all placeholder-emerald-200/50 shadow-sm" placeholder="0">
+                                                <input id="qc-input-passed-${idx}" type="number" inputmode="numeric" value="${item.passed}" oninput="app.logic.setQC('${order.id}', ${idx}, 'passed', this.value, false)" onchange="app.saveData()" onclick="this.select()" class="w-full text-center text-3xl font-bold text-emerald-600 bg-white border border-emerald-200 rounded-xl py-3 outline-none focus:ring-4 focus:ring-emerald-100 focus:border-emerald-400 transition-all placeholder-emerald-200/50 shadow-sm" placeholder="0">
                                             </div>
                                             
                                             <!-- Fail Input -->
                                             <div class="flex-1 bg-rose-50/30 p-4 rounded-2xl border border-rose-100 transition-colors focus-within:border-rose-300 focus-within:bg-rose-50 focus-within:shadow-sm">
                                                 <label class="text-xs font-bold text-rose-700 mb-2 flex items-center gap-1.5 uppercase tracking-wide"><div class="w-1.5 h-1.5 rounded-full bg-rose-500"></div> ไม่ผ่าน (Fail)</label>
-                                                <input id="qc-input-failed-${idx}" type="number" inputmode="numeric" value="${item.failed}" oninput="app.logic.setQC('${order.id}', ${idx}, 'failed', this.value)" onclick="this.select()" class="w-full text-center text-3xl font-bold text-rose-600 bg-white border border-rose-200 rounded-xl py-3 outline-none focus:ring-4 focus:ring-rose-100 focus:border-rose-400 transition-all placeholder-rose-200/50 shadow-sm" placeholder="0">
+                                                <input id="qc-input-failed-${idx}" type="number" inputmode="numeric" value="${item.failed}" oninput="app.logic.setQC('${order.id}', ${idx}, 'failed', this.value, false)" onchange="app.saveData()" onclick="this.select()" class="w-full text-center text-3xl font-bold text-rose-600 bg-white border border-rose-200 rounded-xl py-3 outline-none focus:ring-4 focus:ring-rose-100 focus:border-rose-400 transition-all placeholder-rose-200/50 shadow-sm" placeholder="0">
                                             </div>
                                         </div>
 
                                         <!-- Reason Input (Toggle Visibility) -->
                                         <div id="qc-reason-container-${idx}" class="${item.failed > 0 ? '' : 'hidden'} animate-slide-up bg-rose-50 p-4 rounded-2xl border border-rose-100">
                                             <label class="text-[10px] font-bold text-rose-500 uppercase flex items-center gap-1"><i data-lucide="alert-circle" class="w-3 h-3"></i> สาเหตุที่สินค้าไม่ผ่าน</label>
-                                            <input type="text" placeholder="ระบุสาเหตุ (เช่น แตกหัก, สีเพี้ยน, เป็นรอย)" value="${item.qc_reason}" oninput="app.logic.updateQCReason('${order.id}', ${idx}, this.value)" class="w-full bg-white border border-rose-200 text-rose-800 text-sm rounded-lg p-3 mt-2 focus:ring-2 focus:ring-rose-200 focus:border-rose-300 outline-none shadow-sm placeholder-rose-300">
+                                            <input type="text" placeholder="ระบุสาเหตุ (เช่น แตกหัก, สีเพี้ยน, เป็นรอย)" value="${item.qc_reason}" onchange="app.logic.updateQCReason('${order.id}', ${idx}, this.value)" class="w-full bg-white border border-rose-200 text-rose-800 text-sm rounded-lg p-3 mt-2 focus:ring-2 focus:ring-rose-200 focus:border-rose-300 outline-none shadow-sm placeholder-rose-300">
                                         </div>
                                     </div>
                                     
@@ -882,6 +1104,19 @@
                         return true; // Merged successfully
                     }
                     return false; // Did not merge
+                },
+                
+                deleteOrder(id) {
+                    const orderIdx = app.data.orders.findIndex(o => o.id === id);
+                    if (orderIdx === -1) return;
+                    
+                    app.ui.modal('ยืนยันการลบ', 'คุณต้องการลบออเดอร์นี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้', () => {
+                        app.data.orders.splice(orderIdx, 1);
+                        app.saveData();
+                        app.router('history'); 
+                        app.updateBadges();
+                        app.ui.toast('ลบออเดอร์เรียบร้อยแล้ว');
+                    });
                 },
 
                 // Create Order
@@ -952,13 +1187,15 @@
                     app.saveData();
                     app.router('detail', id);
                 },
-                updatePick(id, itemIdx, pickIdx, field, val) {
+                updatePick(id, itemIdx, pickIdx, field, val, shouldSave = true) {
                     const order = app.data.orders.find(o => o.id === id);
                     if (field === 'qty') val = parseInt(val) || 0;
                     order.items[itemIdx].picks[pickIdx][field] = val;
                     const totalPicked = order.items[itemIdx].picks.reduce((a,b)=>a + (parseInt(b.qty)||0), 0);
                     order.items[itemIdx].picked = totalPicked;
-                    app.saveData();
+                    
+                    if (shouldSave) app.saveData();
+                    
                     const totalEl = document.getElementById(`stock-total-${itemIdx}`);
                     if(totalEl) {
                         totalEl.innerText = totalPicked;
@@ -976,7 +1213,7 @@
                 },
 
                 // QC Logic
-                setQC(id, itemIdx, field, val) {
+                setQC(id, itemIdx, field, val, shouldSave = true) {
                     const order = app.data.orders.find(o => o.id === id);
                     const item = order.items[itemIdx];
                     let newVal = parseInt(val);
@@ -994,7 +1231,8 @@
                     }
 
                     item[field] = newVal;
-                    app.saveData();
+                    
+                    if (shouldSave) app.saveData();
                     
                     // DOM Updates for Card Status
                     const isComplete = (item.passed + item.failed) === item.qty;
@@ -1361,16 +1599,21 @@
                     const content = document.getElementById('modal-content');
                     
                     // Reset container classes to ensure correct flex layout
-                    content.className = "bg-white w-full max-w-md rounded-3xl shadow-2xl transform scale-95 transition-transform duration-200 overflow-hidden flex flex-col max-h-[90dvh]";
+                    content.className = "bg-white w-full max-w-md rounded-3xl shadow-2xl transform scale-95 transition-transform duration-200 overflow-hidden flex flex-col max-h-[85vh]";
 
                     content.innerHTML = `
+                        <!-- Fixed Header -->
                         <div class="px-6 pt-6 pb-2 flex-shrink-0 z-10 bg-white">
                             <h3 class="text-xl font-bold text-slate-800">${title}</h3>
                         </div>
-                        <div class="px-6 py-2 overflow-y-auto flex-1 min-h-0 overscroll-contain" style="-webkit-overflow-scrolling: touch;">
+                        
+                        <!-- Scrollable Body -->
+                        <div class="px-6 py-2 overflow-y-auto flex-1 min-h-0 overscroll-contain">
                             ${html}
-                            <div class="h-8"></div> 
+                            <div class="h-4"></div> <!-- Extra spacing at bottom -->
                         </div>
+
+                        <!-- Fixed Footer -->
                         <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 flex-shrink-0 bg-slate-50 z-10">
                             <button id="modal-cancel" class="h-10 px-6 text-sm text-slate-500 font-bold hover:bg-slate-200 rounded-xl transition-colors">ยกเลิก</button>
                             <button id="modal-confirm" class="h-10 px-6 btn-blue text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-200 hover:shadow-blue-300 transition-all active:scale-95">${btnText}</button>
