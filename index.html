@@ -175,11 +175,12 @@
             </div>
         </div>
         <div class="flex items-center gap-4">
-            <div class="md:hidden">
-                 <button class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 border border-slate-200 active:scale-95 transition-transform" onclick="app.auth.showProfileMenu()">
-                    <i data-lucide="user" class="w-5 h-5"></i>
-                 </button>
-            </div>
+            <!-- Mobile Profile Button -->
+            <button class="md:hidden w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 border border-slate-200 active:scale-95 transition-transform" onclick="app.auth.showProfileMenu()">
+                <i data-lucide="user" class="w-5 h-5"></i>
+            </button>
+
+            <!-- Desktop Profile Section -->
             <div class="hidden md:flex items-center gap-3 pl-4 border-l border-slate-200 cursor-pointer hover:bg-slate-50 p-1 rounded-xl transition-colors" onclick="app.auth.showProfileMenu()">
                 <div class="text-right">
                     <p id="header-username" class="text-xs font-bold text-slate-700">สมชาย ใจดี</p>
@@ -263,7 +264,9 @@
         const DOC_ID = 'master'; 
         const LOCAL_STORAGE_KEY = 'warehouse_qc_data_offline';
         
+        // Role Definitions - Admin is VIEWER ONLY for operations
         const ROLES = {
+            admin: { name: 'ผู้ดูแลระบบ (Viewer)', allowed: ['dashboard', 'stock', 'qc', 'pack', 'ship', 'history', 'detail'] }, // create removed
             manager: { name: 'หัวหน้างาน', allowed: ['dashboard', 'stock', 'qc', 'pack', 'ship', 'history', 'create', 'detail'] },
             stock: { name: 'ทีม Stock', allowed: ['dashboard', 'stock', 'history', 'detail'] }, 
             qc: { name: 'ทีม QC', allowed: ['dashboard', 'qc', 'history', 'detail'] },
@@ -283,6 +286,7 @@
             data: { 
                 orders: [],
                 users: {
+                    'admin': { pass: '1234', role: 'admin', name: 'ผู้ดูแลระบบ' },
                     'manager': { pass: '1234', role: 'manager', name: 'หัวหน้าสมชาย' },
                     'stock': { pass: '1234', role: 'stock', name: 'ทีมคลังสินค้า' },
                     'qc': { pass: '1234', role: 'qc', name: 'ทีม QC' },
@@ -335,13 +339,18 @@
                                 const newData = snapshot.data();
                                 if (newData) {
                                     this.data = newData;
+                                    // Merge default users
+                                    const defaultUsers = {
+                                        'admin': { pass: '1234', role: 'admin', name: 'ผู้ดูแลระบบ' },
+                                        'manager': { pass: '1234', role: 'manager', name: 'หัวหน้าสมชาย' },
+                                        'stock': { pass: '1234', role: 'stock', name: 'ทีมคลังสินค้า' },
+                                        'qc': { pass: '1234', role: 'qc', name: 'ทีม QC' },
+                                        'pack': { pass: '1234', role: 'pack', name: 'ทีมแพ็ค/ส่ง' }
+                                    };
                                     if (!this.data.users) {
-                                        this.data.users = {
-                                            'manager': { pass: '1234', role: 'manager', name: 'หัวหน้าสมชาย' },
-                                            'stock': { pass: '1234', role: 'stock', name: 'ทีมคลังสินค้า' },
-                                            'qc': { pass: '1234', role: 'qc', name: 'ทีม QC' },
-                                            'pack': { pass: '1234', role: 'pack', name: 'ทีมแพ็ค/ส่ง' }
-                                        };
+                                        this.data.users = defaultUsers;
+                                    } else {
+                                        if (!this.data.users['admin']) this.data.users['admin'] = defaultUsers['admin'];
                                     }
                                     if (!this.data.orders) this.data.orders = [];
 
@@ -352,7 +361,6 @@
                                     } else if (!this.currentUser) {
                                         this.showLogin();
                                     } else {
-                                        // No auto-route to prevent jump, but update UI
                                          const activeEl = document.activeElement;
                                          const isEditing = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
                                          if (!isEditing) {
@@ -393,12 +401,12 @@
             renderNavigation() {
                 const userRole = this.currentUser.role;
                 const allowedPages = ROLES[userRole]?.allowed || [];
-                const isManager = userRole === 'manager';
+                const isManagerOrAdmin = (userRole === 'manager' || userRole === 'admin');
 
                 // Desktop Sidebar
                 const desktopNav = document.getElementById('desktop-nav');
                 desktopNav.innerHTML = MENU_ITEMS.map(item => {
-                    if (isManager || allowedPages.includes(item.id)) {
+                    if (isManagerOrAdmin || allowedPages.includes(item.id)) {
                         let badgeHtml = '';
                         if (item.badge) {
                             badgeHtml = `<span id="desktop-badge-${item.id}" class="${item.badgeColor} text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span>`;
@@ -416,7 +424,7 @@
                 // Mobile Nav
                 const mobileNav = document.getElementById('mobile-nav');
                 mobileNav.innerHTML = MENU_ITEMS.filter(i => i.mobile).map(item => {
-                    if (isManager || allowedPages.includes(item.id)) {
+                    if (isManagerOrAdmin || allowedPages.includes(item.id)) {
                         let badgeHtml = '';
                         if (item.badge) {
                             badgeHtml = `<span id="mobile-badge-${item.id}" class="absolute top-1 right-3 min-w-[16px] h-4 flex items-center justify-center ${item.badgeColor} text-white text-[9px] font-bold px-1 rounded-full border border-white hidden">0</span>`;
@@ -432,10 +440,15 @@
                 }).join('');
                 
                 const fab = document.getElementById('fab-create');
-                if (isManager || allowedPages.includes('create')) {
-                     // handled in router
-                } else {
-                    if(fab) fab.remove();
+                // Only Manager can create
+                const canCreate = (this.currentUser.role === 'manager');
+                
+                if (fab) {
+                    if (canCreate && allowedPages.includes('create')) {
+                         fab.classList.remove('hidden');
+                    } else {
+                         fab.classList.add('hidden');
+                    }
                 }
 
                 mobileNav.classList.remove('hidden');
@@ -497,6 +510,7 @@
                 const now = new Date();
                 const initialData = {
                     users: {
+                        'admin': { pass: '1234', role: 'admin', name: 'ผู้ดูแลระบบ' },
                         'manager': { pass: '1234', role: 'manager', name: 'หัวหน้าสมชาย' },
                         'stock': { pass: '1234', role: 'stock', name: 'ทีมคลังสินค้า' },
                         'qc': { pass: '1234', role: 'qc', name: 'ทีม QC' },
@@ -626,7 +640,9 @@
                     if(fab) fab.classList.add('hidden');
                 } else {
                     mobileNav.classList.remove('translate-y-full');
-                    if(fab && (this.currentUser.role === 'manager')) { 
+                    // Permission Check for FAB: Only Manager can create
+                    const canCreate = (this.currentUser.role === 'manager');
+                    if(fab && canCreate) { 
                          fab.classList.remove('hidden');
                     } else if(fab) {
                          fab.classList.add('hidden');
@@ -655,7 +671,6 @@
 
                 // --- RESTORE SCROLL ---
                 if (isSameView) {
-                    // Use setTimeout to ensure DOM is rendered before setting scroll
                     setTimeout(() => {
                          main.scrollTop = previousScrollTop;
                     }, 0);
@@ -663,7 +678,6 @@
             },
 
             views: {
-                // ... (ModalHTML logic remains)
                 modalHTML(title, html, onConfirm, btnText='ยืนยัน') {
                     const overlay = document.getElementById('modal-overlay');
                     const content = document.getElementById('modal-content');
@@ -699,7 +713,6 @@
                     };
                 },
                 
-                // ... (History, Create, Dashboard, List, Detail renders remain same)
                 renderHistory(container) {
                     container.innerHTML = `
                         <div class="p-4 lg:p-8 space-y-6 animate-fade-in max-w-4xl mx-auto pb-32">
@@ -902,29 +915,65 @@
                     let content = '';
                     let footer = '';
 
+                    const isAdmin = app.currentUser.role === 'admin';
+                    const isManager = app.currentUser.role === 'manager';
+                    const isStock = app.currentUser.role === 'stock';
+                    const isQC = app.currentUser.role === 'qc';
+                    const isPack = app.currentUser.role === 'pack';
+
                     const isRework = order.docNo.includes('(Rework)');
                     const displayDocNo = order.docNo.replace('(Rework)', '').trim();
 
+                    // Viewer/Auditor logic: canEdit is FALSE for admin.
+                    // Manager and specific roles can edit.
+                    const canEdit = isManager || 
+                                   (order.status === 'pending_stock' && isStock) ||
+                                   (order.status === 'pending_qc' && isQC) ||
+                                   ((order.status === 'pending_pack' || order.status === 'ready_ship') && isPack);
+
                     if (order.status === 'pending_stock') {
-                        content = this.renderStockContent(order);
-                        footer = `<button onclick="app.logic.validateStock('${id}')" class="btn-main btn-orange">ยืนยันส่งตรวจสอบ</button>`;
+                        content = this.renderStockContent(order, canEdit);
+                        if (canEdit) {
+                            footer = `<button onclick="app.logic.validateStock('${id}')" class="btn-main btn-orange">ยืนยันส่งตรวจสอบ</button>`;
+                        }
                     } else if (order.status === 'pending_qc') {
-                        content = this.renderQCContent(order);
-                        footer = `<button onclick="app.logic.submitQC('${id}')" class="btn-main btn-rose"><i data-lucide="save" class="w-5 h-5"></i> บันทึกผล QC</button>`;
+                        content = this.renderQCContent(order, canEdit);
+                        if (canEdit) {
+                            footer = `<button onclick="app.logic.submitQC('${id}')" class="btn-main btn-rose"><i data-lucide="save" class="w-5 h-5"></i> บันทึกผล QC</button>`;
+                        }
                     } else if (order.status === 'pending_pack') {
                          content = this.renderReadOnlyContent(order);
-                         footer = `
-                         <div class="space-y-3">
-                             <button onclick="app.logic.printLabel('${id}')" class="w-full h-14 text-lg rounded-2xl font-bold btn-grey flex items-center justify-center gap-2"><i data-lucide="printer" class="w-5 h-5"></i> พิมพ์ Label ปิดกล่อง</button>
-                             <button onclick="app.logic.moveStatus('${id}', 'ready_ship', 'แพ็คสินค้าแล้ว')" class="btn-main btn-blue">ยืนยันแพ็คเสร็จสิ้น</button>
-                         </div>`;
+                         if (canEdit) {
+                             footer = `
+                             <div class="space-y-3">
+                                 <button onclick="app.logic.printLabel('${id}')" class="w-full h-14 text-lg rounded-2xl font-bold btn-grey flex items-center justify-center gap-2"><i data-lucide="printer" class="w-5 h-5"></i> พิมพ์ Label ปิดกล่อง</button>
+                                 <button onclick="app.logic.moveStatus('${id}', 'ready_ship', 'แพ็คสินค้าแล้ว')" class="btn-main btn-blue">ยืนยันแพ็คเสร็จสิ้น</button>
+                             </div>`;
+                         } else {
+                             // Admin/Manager viewer can print
+                             if(isAdmin || isManager) {
+                                footer = `
+                                 <div class="space-y-3">
+                                     <button onclick="app.logic.printLabel('${id}')" class="w-full h-14 text-lg rounded-2xl font-bold btn-grey flex items-center justify-center gap-2"><i data-lucide="printer" class="w-5 h-5"></i> พิมพ์ Label ปิดกล่อง</button>
+                                 </div>`;
+                             }
+                         }
                     } else if (order.status === 'ready_ship') {
                          content = this.renderReadOnlyContent(order);
-                         footer = `
-                         <div class="space-y-3">
-                             <button onclick="app.logic.printLabel('${id}')" class="w-full h-14 text-lg rounded-2xl font-bold btn-grey flex items-center justify-center gap-2"><i data-lucide="printer" class="w-5 h-5"></i> พิมพ์ Label ปิดกล่อง</button>
-                             <button onclick="app.logic.moveStatus('${id}', 'completed', 'จัดส่งแล้ว')" class="btn-main btn-emerald">ยืนยันการจัดส่ง</button>
-                         </div>`;
+                         if (canEdit) {
+                             footer = `
+                             <div class="space-y-3">
+                                 <button onclick="app.logic.printLabel('${id}')" class="w-full h-14 text-lg rounded-2xl font-bold btn-grey flex items-center justify-center gap-2"><i data-lucide="printer" class="w-5 h-5"></i> พิมพ์ Label ปิดกล่อง</button>
+                                 <button onclick="app.logic.moveStatus('${id}', 'completed', 'จัดส่งแล้ว')" class="btn-main btn-emerald">ยืนยันการจัดส่ง</button>
+                             </div>`;
+                         } else {
+                              if(isAdmin || isManager) {
+                                footer = `
+                                 <div class="space-y-3">
+                                     <button onclick="app.logic.printLabel('${id}')" class="w-full h-14 text-lg rounded-2xl font-bold btn-grey flex items-center justify-center gap-2"><i data-lucide="printer" class="w-5 h-5"></i> พิมพ์ Label ปิดกล่อง</button>
+                                 </div>`;
+                             }
+                         }
                     } else {
                         content = this.renderReadOnlyContent(order);
                     }
@@ -960,7 +1009,10 @@
                     return `<div class="bg-white p-5 rounded-3xl shadow-soft border border-slate-100 flex items-center justify-between hover:shadow-md transition-shadow"><div><p class="text-xs text-slate-500 font-bold uppercase tracking-wide mb-1">${label}</p><p class="text-3xl font-bold text-slate-800">${val}</p></div><div class="p-3.5 rounded-2xl ${bgClass}"><i data-lucide="${icon}" class="w-6 h-6"></i></div></div>`;
                 },
 
-                renderStockContent(order) {
+                renderStockContent(order, canEdit) {
+                    const disabledAttr = canEdit ? '' : 'disabled';
+                    const inputBgClass = canEdit ? 'bg-white' : 'bg-slate-100 text-slate-500';
+
                     return `
                         <div class="space-y-4">
                             ${order.items.map((item, idx) => {
@@ -981,18 +1033,18 @@
                                             <div class="flex gap-3 items-center animate-slide-up group">
                                                 <div class="relative flex-1">
                                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i data-lucide="scan-barcode" class="w-4 h-4 text-slate-400 group-focus-within:text-brand-500 transition-colors"></i></div>
-                                                    <input type="text" placeholder="ระบุ Lot" value="${pick.lot}" oninput="app.logic.updatePick('${order.id}', ${idx}, ${pIdx}, 'lot', this.value, false)" onchange="app.saveData()" class="w-full pl-10 pr-3 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-100 focus:border-brand-400 outline-none transition-all placeholder-slate-300 shadow-sm">
+                                                    <input type="text" placeholder="ระบุ Lot" value="${pick.lot}" ${disabledAttr} oninput="app.logic.updatePick('${order.id}', ${idx}, ${pIdx}, 'lot', this.value, false)" onchange="app.saveData()" class="w-full pl-10 pr-3 py-3 ${inputBgClass} border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-100 focus:border-brand-400 outline-none transition-all placeholder-slate-300 shadow-sm">
                                                 </div>
                                                 <div class="w-24 relative">
-                                                    <input type="number" inputmode="numeric" onclick="this.select()" placeholder="0" value="${pick.qty}" oninput="app.logic.updatePick('${order.id}', ${idx}, ${pIdx}, 'qty', this.value, false)" onchange="app.saveData()" class="w-full py-3 text-center text-sm font-bold bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-100 focus:border-brand-400 outline-none transition-all placeholder-slate-300 shadow-sm">
+                                                    <input type="number" inputmode="numeric" onclick="this.select()" placeholder="0" value="${pick.qty}" ${disabledAttr} oninput="app.logic.updatePick('${order.id}', ${idx}, ${pIdx}, 'qty', this.value, false)" onchange="app.saveData()" class="w-full py-3 text-center text-sm font-bold ${inputBgClass} border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-100 focus:border-brand-400 outline-none transition-all placeholder-slate-300 shadow-sm">
                                                 </div>
-                                                <button onclick="app.logic.removePick('${order.id}', ${idx}, ${pIdx})" class="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors border border-transparent hover:border-red-100"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                                                ${canEdit ? `<button onclick="app.logic.removePick('${order.id}', ${idx}, ${pIdx})" class="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors border border-transparent hover:border-red-100"><i data-lucide="trash-2" class="w-5 h-5"></i></button>` : ''}
                                             </div>
                                         `).join('')}
                                     </div>
-                                    <div class="p-3 bg-slate-50 border-t border-slate-100">
+                                    ${canEdit ? `<div class="p-3 bg-slate-50 border-t border-slate-100">
                                         <button onclick="app.logic.addPick('${order.id}', ${idx})" class="w-full h-10 text-sm font-bold text-slate-600 bg-white border border-slate-200 hover:bg-white hover:border-slate-300 hover:shadow-md rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-sm"><i data-lucide="plus" class="w-4 h-4 text-slate-400"></i> เพิ่ม Lot สินค้า</button>
-                                    </div>
+                                    </div>` : ''}
                                 </div>
                                 `;
                             }).join('')}
@@ -1000,7 +1052,10 @@
                     `;
                 },
 
-                renderQCContent(order) {
+                renderQCContent(order, canEdit) {
+                    const disabledAttr = canEdit ? '' : 'disabled';
+                    const inputBgClass = canEdit ? 'bg-white' : 'bg-slate-100 text-slate-500';
+
                     return `
                         <div class="space-y-4">
                             ${order.items.map((item, idx) => {
@@ -1024,20 +1079,20 @@
                                             <!-- Pass Input -->
                                             <div class="flex-1 bg-emerald-50/30 p-4 rounded-2xl border border-emerald-100 transition-colors focus-within:border-emerald-300 focus-within:bg-emerald-50 focus-within:shadow-sm">
                                                 <label class="text-xs font-bold text-emerald-700 mb-2 flex items-center gap-1.5 uppercase tracking-wide"><div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> ผ่าน (Pass)</label>
-                                                <input id="qc-input-passed-${idx}" type="number" inputmode="numeric" value="${item.passed}" oninput="app.logic.setQC('${order.id}', ${idx}, 'passed', this.value, false)" onchange="app.saveData()" onclick="this.select()" class="w-full text-center text-3xl font-bold text-emerald-600 bg-white border border-emerald-200 rounded-xl py-3 outline-none focus:ring-4 focus:ring-emerald-100 focus:border-emerald-400 transition-all placeholder-emerald-200/50 shadow-sm" placeholder="0">
+                                                <input id="qc-input-passed-${idx}" type="number" inputmode="numeric" value="${item.passed}" ${disabledAttr} oninput="app.logic.setQC('${order.id}', ${idx}, 'passed', this.value, false)" onchange="app.saveData()" onclick="this.select()" class="w-full text-center text-3xl font-bold text-emerald-600 ${inputBgClass} border border-emerald-200 rounded-xl py-3 outline-none focus:ring-4 focus:ring-emerald-100 focus:border-emerald-400 transition-all placeholder-emerald-200/50 shadow-sm" placeholder="0">
                                             </div>
                                             
                                             <!-- Fail Input -->
                                             <div class="flex-1 bg-rose-50/30 p-4 rounded-2xl border border-rose-100 transition-colors focus-within:border-rose-300 focus-within:bg-rose-50 focus-within:shadow-sm">
                                                 <label class="text-xs font-bold text-rose-700 mb-2 flex items-center gap-1.5 uppercase tracking-wide"><div class="w-1.5 h-1.5 rounded-full bg-rose-500"></div> ไม่ผ่าน (Fail)</label>
-                                                <input id="qc-input-failed-${idx}" type="number" inputmode="numeric" value="${item.failed}" oninput="app.logic.setQC('${order.id}', ${idx}, 'failed', this.value, false)" onchange="app.saveData()" onclick="this.select()" class="w-full text-center text-3xl font-bold text-rose-600 bg-white border border-rose-200 rounded-xl py-3 outline-none focus:ring-4 focus:ring-rose-100 focus:border-rose-400 transition-all placeholder-rose-200/50 shadow-sm" placeholder="0">
+                                                <input id="qc-input-failed-${idx}" type="number" inputmode="numeric" value="${item.failed}" ${disabledAttr} oninput="app.logic.setQC('${order.id}', ${idx}, 'failed', this.value, false)" onchange="app.saveData()" onclick="this.select()" class="w-full text-center text-3xl font-bold text-rose-600 ${inputBgClass} border border-rose-200 rounded-xl py-3 outline-none focus:ring-4 focus:ring-rose-100 focus:border-rose-400 transition-all placeholder-rose-200/50 shadow-sm" placeholder="0">
                                             </div>
                                         </div>
 
                                         <!-- Reason Input (Toggle Visibility) -->
                                         <div id="qc-reason-container-${idx}" class="${item.failed > 0 ? '' : 'hidden'} animate-slide-up bg-rose-50 p-4 rounded-2xl border border-rose-100">
                                             <label class="text-[10px] font-bold text-rose-500 uppercase flex items-center gap-1"><i data-lucide="alert-circle" class="w-3 h-3"></i> สาเหตุที่สินค้าไม่ผ่าน</label>
-                                            <input type="text" placeholder="ระบุสาเหตุ (เช่น แตกหัก, สีเพี้ยน, เป็นรอย)" value="${item.qc_reason}" onchange="app.logic.updateQCReason('${order.id}', ${idx}, this.value)" class="w-full bg-white border border-rose-200 text-rose-800 text-sm rounded-lg p-3 mt-2 focus:ring-2 focus:ring-rose-200 focus:border-rose-300 outline-none shadow-sm placeholder-rose-300">
+                                            <input type="text" placeholder="ระบุสาเหตุ (เช่น แตกหัก, สีเพี้ยน, เป็นรอย)" value="${item.qc_reason}" ${disabledAttr} oninput="app.logic.updateQCReason('${order.id}', ${idx}, this.value)" class="w-full ${inputBgClass} border border-rose-200 text-rose-800 text-sm rounded-lg p-3 mt-2 focus:ring-2 focus:ring-rose-200 focus:border-rose-300 outline-none shadow-sm placeholder-rose-300">
                                         </div>
                                     </div>
                                     
