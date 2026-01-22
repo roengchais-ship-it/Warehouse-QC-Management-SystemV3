@@ -64,13 +64,13 @@
         .input-focus-ring:focus-within { box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2); border-color: #0ea5e9; }
 
         /* =========================================
-           PREMIUM BUTTON STYLES (Standardized)
+           PREMIUM BUTTON STYLES
            ========================================= */
         .btn-main {
             width: 100%;
-            height: 56px; /* Fixed Height for consistency */
-            border-radius: 16px; /* Rounded 2xl */
-            font-size: 1.125rem; /* Text LG */
+            height: 56px;
+            border-radius: 16px;
+            font-size: 1.125rem;
             font-weight: 700;
             color: white;
             display: flex;
@@ -80,10 +80,10 @@
             transition: all 0.2s;
             position: relative;
             overflow: hidden;
+            cursor: pointer;
         }
         .btn-main:active { transform: scale(0.98); }
         
-        /* Gradient Variants with Colored Shadows */
         .btn-blue { 
             background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); 
             box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.4);
@@ -100,11 +100,6 @@
             background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
             box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
         }
-        .btn-slate { 
-            background: linear-gradient(135deg, #64748b 0%, #475569 100%); 
-            box-shadow: 0 10px 20px -5px rgba(71, 85, 105, 0.4);
-        }
-        /* New Grey Button for Print */
         .btn-grey {
             background-color: #f1f5f9;
             color: #475569;
@@ -128,7 +123,7 @@
         }
 
         /* -------------------------------------------
-           REAL PRINT STYLES (FIXED v9.2)
+           REAL PRINT STYLES (4x6 Inches / 100x150mm)
            ------------------------------------------- */
         @media print {
             body > * { display: none !important; }
@@ -147,7 +142,6 @@
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-                color-adjust: exact !important;
             }
             @page {
                 size: 100mm 150mm;
@@ -157,7 +151,7 @@
                 page-break-after: always;
                 page-break-inside: avoid;
                 width: 100mm;
-                height: 149mm;
+                height: 149mm; /* Slightly less than 150mm to avoid overflow */
                 overflow: hidden;
             }
         }
@@ -177,7 +171,7 @@
     <!-- TOAST -->
     <div id="toast-container" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-[90] flex flex-col gap-2 pointer-events-none w-full max-w-xs px-4"></div>
 
-    <!-- MODAL (Redesigned for Scrolling) -->
+    <!-- MODAL -->
     <div id="modal-overlay" class="fixed inset-0 z-[80] bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center opacity-0 transition-opacity duration-200 p-4">
         <div id="modal-content" class="bg-white w-full max-w-md rounded-3xl shadow-2xl transform scale-95 transition-transform duration-200 overflow-hidden flex flex-col max-h-[85vh]">
             <!-- Content Injected via JS -->
@@ -251,22 +245,9 @@
     <!-- BOTTOM NAV (Mobile) -->
     <nav id="mobile-nav" class="lg:hidden fixed bottom-0 w-full bg-white/95 backdrop-blur border-t border-slate-200 flex justify-around items-center h-[70px] z-40 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.03)] transition-transform duration-300">
         <button onclick="app.router('dashboard')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400" data-page="dashboard"><i data-lucide="layout-grid" class="w-6 h-6"></i><span class="text-[10px] font-medium">หน้าหลัก</span></button>
-        
-        <button onclick="app.router('stock')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400 relative" data-page="stock">
-            <i data-lucide="layers" class="w-6 h-6"></i>
-            <span class="text-[10px] font-medium">เบิก</span>
-        </button>
-        
-        <button onclick="app.router('qc')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400 relative" data-page="qc">
-            <i data-lucide="clipboard-check" class="w-6 h-6"></i>
-            <span class="text-[10px] font-medium">QC</span>
-        </button>
-        
-        <button onclick="app.router('pack')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400" data-page="pack">
-            <i data-lucide="box" class="w-6 h-6"></i>
-            <span class="text-[10px] font-medium">แพ็ค</span>
-        </button>
-        
+        <button onclick="app.router('stock')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400 relative" data-page="stock"><i data-lucide="layers" class="w-6 h-6"></i><span class="text-[10px] font-medium">เบิก</span></button>
+        <button onclick="app.router('qc')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400 relative" data-page="qc"><i data-lucide="clipboard-check" class="w-6 h-6"></i><span class="text-[10px] font-medium">QC</span></button>
+        <button onclick="app.router('pack')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400" data-page="pack"><i data-lucide="box" class="w-6 h-6"></i><span class="text-[10px] font-medium">แพ็ค</span></button>
         <button onclick="app.router('history')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400" data-page="history"><i data-lucide="clock" class="w-6 h-6"></i><span class="text-[10px] font-medium">ประวัติ</span></button>
     </nav>
 
@@ -274,81 +255,92 @@
          LOGIC (JAVASCRIPT)
     ======================== -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Configuration
-        let db, auth, appId;
-        let useLocalStorage = false; 
-
-        try {
-            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                const firebaseConfig = JSON.parse(__firebase_config);
-                const appFirebase = initializeApp(firebaseConfig);
-                auth = getAuth(appFirebase);
-                db = getFirestore(appFirebase);
-                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            } else {
-                throw new Error("No Firebase Config");
-            }
-        } catch (e) {
-            console.warn("Firebase not configured. Using LocalStorage mode.", e);
-            useLocalStorage = true;
-        }
-
+        // ----------------------------------------------------
+        // 🟢 PART 1: DEFINITIONS & CONFIG
+        // ----------------------------------------------------
         const COLLECTION_NAME = 'warehouse_qc_db';
         const DOC_ID = 'master'; 
         const LOCAL_STORAGE_KEY = 'warehouse_qc_data_offline';
+        let db, auth, appId;
+        let useLocalStorage = false; 
 
+        // ----------------------------------------------------
+        // 🟢 PART 2: THE MAIN APP OBJECT (Definied First)
+        // ----------------------------------------------------
         const app = {
             data: { orders: [] },
             activeTab: 'dashboard',
             tempPrintState: { selectedItems: [], totalQty: 0 },
             user: null, 
 
+            // Initialize App
             async init() {
-                if (useLocalStorage) {
-                    this.loadDataLocal();
-                    if (!this.data.orders || this.data.orders.length === 0) this.seedData();
-                    this.router('dashboard');
-                    return;
-                }
-
+                // Try to load Firebase modules dynamically
                 try {
+                    // --- 🟢 ส่วนตั้งค่า Firebase (วาง Config ตรงนี้) ---
+                    const myFirebaseConfig = null; 
+                    // ตัวอย่าง: const myFirebaseConfig = { apiKey: "AIza...", ... };
+                    
+                    let configToUse = null;
+                    if (myFirebaseConfig) {
+                        configToUse = myFirebaseConfig;
+                    } else if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                        configToUse = JSON.parse(__firebase_config);
+                    }
+
+                    if (!configToUse) throw new Error("No Config");
+
+                    // Dynamic Import to prevent crash if CDN is down
+                    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");
+                    const { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
+                    const { getFirestore, doc, setDoc, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+
+                    // Globals for module scope
+                    const appFirebase = initializeApp(configToUse);
+                    auth = getAuth(appFirebase);
+                    db = getFirestore(appFirebase);
+                    appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+                    // Save refs to app for internal use
+                    this._firebase = { doc, setDoc }; 
+
+                    // Auth Logic
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                         await signInWithCustomToken(auth, __initial_auth_token);
                     } else {
                         await signInAnonymously(auth);
                     }
-                } catch (e) {
-                    console.error("Auth failed", e);
-                }
-                
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        this.user = user;
-                        const docRef = doc(db, 'artifacts', appId, 'public', 'data', COLLECTION_NAME, DOC_ID);
-                        onSnapshot(docRef, (snapshot) => {
-                            if (snapshot.exists()) {
-                                const newData = snapshot.data();
-                                if (newData && newData.orders) {
-                                    this.data = newData;
-                                    // re-render only if safe
-                                    const activeEl = document.activeElement;
-                                    const isEditing = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
-                                    if (!isEditing) {
-                                         this.router(this.activeTab);
+
+                    // Listener
+                    onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            this.user = user;
+                            const docRef = doc(db, 'artifacts', appId, 'public', 'data', COLLECTION_NAME, DOC_ID);
+                            onSnapshot(docRef, (snapshot) => {
+                                if (snapshot.exists()) {
+                                    const newData = snapshot.data();
+                                    if (newData && newData.orders) {
+                                        this.data = newData;
+                                        // re-render only if safe
+                                        const activeEl = document.activeElement;
+                                        const isEditing = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT');
+                                        if (!isEditing) {
+                                             this.router(this.activeTab);
+                                        }
                                     }
+                                } else {
+                                    this.seedData();
                                 }
-                            } else {
-                                this.seedData();
-                            }
-                        }, (error) => {
-                            console.error("Firestore sync error:", error);
-                        });
-                    }
-                });
+                            });
+                        }
+                    });
+
+                } catch (e) {
+                    console.warn("Using Offline Mode (LocalStorage)", e);
+                    useLocalStorage = true;
+                    this.loadDataLocal();
+                    if (!this.data.orders || this.data.orders.length === 0) this.seedData();
+                }
 
                 this.router('dashboard');
             },
@@ -368,8 +360,9 @@
                     return;
                 }
 
-                if (!this.user) return;
+                if (!this.user || !this._firebase) return;
                 try {
+                    const { doc, setDoc } = this._firebase;
                     const docRef = doc(db, 'artifacts', appId, 'public', 'data', COLLECTION_NAME, DOC_ID);
                     await setDoc(docRef, this.data);
                 } catch (e) {
@@ -443,21 +436,16 @@
                     const overlay = document.getElementById('modal-overlay');
                     const content = document.getElementById('modal-content');
                     
-                    content.className = "bg-white w-full max-w-md rounded-3xl shadow-2xl transform scale-95 transition-transform duration-200 overflow-hidden flex flex-col max-h-[85vh]";
+                    content.className = "bg-white w-full max-w-md rounded-3xl shadow-2xl transform scale-95 transition-transform duration-200 overflow-hidden flex flex-col max-h-[90dvh]";
 
                     content.innerHTML = `
-                        <!-- Fixed Header -->
                         <div class="px-6 pt-6 pb-2 flex-shrink-0 z-10 bg-white">
                             <h3 class="text-xl font-bold text-slate-800">${title}</h3>
                         </div>
-                        
-                        <!-- Scrollable Body -->
-                        <div class="px-6 py-2 overflow-y-auto flex-1 min-h-0 overscroll-contain">
+                        <div class="px-6 py-2 overflow-y-auto flex-1 min-h-0 overscroll-contain" style="-webkit-overflow-scrolling: touch;">
                             ${html}
-                            <div class="h-4"></div>
+                            <div class="h-8"></div> 
                         </div>
-
-                        <!-- Fixed Footer -->
                         <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 flex-shrink-0 bg-slate-50 z-10">
                             <button id="modal-cancel" class="h-10 px-6 text-sm text-slate-500 font-bold hover:bg-slate-200 rounded-xl transition-colors">ยกเลิก</button>
                             <button id="modal-confirm" class="h-10 px-6 btn-blue text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-200 hover:shadow-blue-300 transition-all active:scale-95">${btnText}</button>
@@ -483,8 +471,6 @@
                     container.innerHTML = `
                         <div class="p-4 lg:p-8 space-y-6 animate-fade-in max-w-4xl mx-auto pb-32">
                             <h2 class="text-2xl font-bold text-slate-800">ประวัติการทำงาน</h2>
-                            
-                            <!-- Filters -->
                             <div class="bg-white p-4 rounded-3xl shadow-soft border border-slate-100 flex flex-col md:flex-row gap-4">
                                 <div class="flex-1">
                                     <label class="text-xs font-bold text-slate-400 mb-1 block">ค้นหา</label>
@@ -504,15 +490,10 @@
                                     </select>
                                 </div>
                             </div>
-
-                            <!-- List -->
-                            <div id="history-list" class="space-y-3">
-                                <!-- Items injected here -->
-                            </div>
+                            <div id="history-list" class="space-y-3"></div>
                         </div>
                     `;
 
-                    // Logic for filtering
                     const renderList = () => {
                         const search = document.getElementById('history-search').value.toLowerCase();
                         const status = document.getElementById('history-filter-status').value;
@@ -600,7 +581,7 @@
                         </div>
                     `;
                     document.getElementById('new-date').valueAsDate = new Date();
-                    app.logic.addInputRow(); // Add first row
+                    app.logic.addInputRow(); 
                     lucide.createIcons();
                 },
 
@@ -1235,6 +1216,7 @@
 
                     }, 'สั่งพิมพ์');
                     
+                    // Initial update
                     setTimeout(() => app.logic.updatePrintPreview(id), 100);
                 },
 
@@ -1284,15 +1266,19 @@
                         item.picks.forEach(p => { if(p.lot) lotNumbers.add(p.lot); });
                     });
 
+                    // Update State
                     app.tempPrintState.selectedItems = selectedItems;
                     app.tempPrintState.totalQty = totalQty;
 
+                    // Update UI inputs
                     const totalQtyEl = document.getElementById('print-total-qty');
                     const qtyPerBoxEl = document.getElementById('print-qty-per-box');
                     
                     if (totalQtyEl) totalQtyEl.value = totalQty;
+                    // Default qty per box = total of selected
                     if (qtyPerBoxEl && selectedItems.length > 0) qtyPerBoxEl.value = totalQty;
 
+                    // Update Preview Text
                     const nameEl = document.getElementById('preview-product-name');
                     const lotEl = document.getElementById('preview-lot');
                     const qtyEl = document.getElementById('preview-qty'); // New QTY preview element
