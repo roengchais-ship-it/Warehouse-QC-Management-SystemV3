@@ -103,37 +103,15 @@
         .input-field:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
 
         /* -------------------------------------------
-           REAL PRINT STYLES (4x6 Inches / 100x150mm)
+           REAL PRINT STYLES
            ------------------------------------------- */
         @media print {
             body > * { display: none !important; }
-            #printable-area {
-                display: block !important;
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                margin: 0;
-                padding: 0;
-                background-color: white;
-            }
+            #printable-area { display: block !important; position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 0; background-color: white; }
             #printable-area * { visibility: visible; }
-            * {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            @page {
-                size: 100mm 150mm;
-                margin: 0;
-            }
-            .print-page-break { 
-                page-break-after: always;
-                page-break-inside: avoid;
-                width: 100mm;
-                height: 149mm;
-                overflow: hidden;
-            }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            @page { size: 100mm 150mm; margin: 0; }
+            .print-page-break { page-break-after: always; page-break-inside: avoid; width: 100mm; height: 149mm; overflow: hidden; }
         }
     </style>
 </head>
@@ -193,7 +171,7 @@
                 <i data-lucide="package-check" class="w-5 h-5"></i>
             </div>
             <div>
-                <h1 class="font-bold text-lg leading-tight text-slate-800">Warehouse QC</h1>
+                <h1 class="font-bold text-lg leading-tight text-slate-800">Warehouse QC Management System</h1>
             </div>
         </div>
         <div class="flex items-center gap-4">
@@ -361,6 +339,7 @@
                                 const newData = snapshot.data();
                                 if (newData) {
                                     this.data = newData;
+                                    // Merge default users
                                     const defaultUsers = {
                                         'admin': { pass: '1234', role: 'admin', name: 'ผู้ดูแลระบบ' },
                                         'manager': { pass: '1234', role: 'manager', name: 'หัวหน้าสมชาย' },
@@ -425,10 +404,7 @@
                 const desktopNav = document.getElementById('desktop-nav');
                 desktopNav.innerHTML = MENU_ITEMS.map(item => {
                     if (isSuperUser || allowedPages.includes(item.id)) {
-                        let badgeHtml = '';
-                        if (item.badge) {
-                            badgeHtml = `<span id="desktop-badge-${item.id}" class="${item.badgeColor} text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span>`;
-                        }
+                        let badgeHtml = item.badge ? `<span id="desktop-badge-${item.id}" class="${item.badgeColor} text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden">0</span>` : '';
                         return `
                         <button onclick="app.router('${item.id}')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:bg-slate-50 text-slate-500" data-page="${item.id}">
                             <i data-lucide="${item.icon}" class="w-5 h-5"></i> 
@@ -442,10 +418,7 @@
                 const mobileNav = document.getElementById('mobile-nav');
                 mobileNav.innerHTML = MENU_ITEMS.filter(i => i.mobile).map(item => {
                     if (isSuperUser || allowedPages.includes(item.id)) {
-                        let badgeHtml = '';
-                        if (item.badge) {
-                            badgeHtml = `<span id="mobile-badge-${item.id}" class="absolute top-1 right-3 min-w-[16px] h-4 flex items-center justify-center ${item.badgeColor} text-white text-[9px] font-bold px-1 rounded-full border border-white hidden">0</span>`;
-                        }
+                        let badgeHtml = item.badge ? `<span id="mobile-badge-${item.id}" class="absolute top-1 right-3 min-w-[16px] h-4 flex items-center justify-center ${item.badgeColor} text-white text-[9px] font-bold px-1 rounded-full border border-white hidden">0</span>` : '';
                         return `
                         <button onclick="app.router('${item.id}')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400 relative" data-page="${item.id}">
                             <i data-lucide="${item.icon}" class="w-6 h-6"></i>
@@ -458,91 +431,49 @@
                 
                 const fab = document.getElementById('fab-create');
                 const canCreate = (this.currentUser.role === 'manager');
-                
                 if (fab) {
-                    if (canCreate && allowedPages.includes('create')) {
-                         fab.classList.remove('hidden');
-                    } else {
-                         fab.classList.add('hidden');
-                    }
+                    if (canCreate && allowedPages.includes('create')) fab.classList.remove('hidden');
+                    else fab.classList.add('hidden');
                 }
-
-                mobileNav.classList.remove('hidden');
+                document.getElementById('mobile-nav').classList.remove('hidden');
                 lucide.createIcons();
             },
             
             updateBadges() {
                 if (!this.data || !this.data.orders) return;
-
                 const counts = {
                     stock: this.data.orders.filter(o => o.status === 'pending_stock').length,
                     qc: this.data.orders.filter(o => o.status === 'pending_qc').length,
                     pack: this.data.orders.filter(o => o.status === 'pending_pack').length,
                     ship: this.data.orders.filter(o => o.status === 'ready_ship').length
                 };
-
                 const update = (id, count) => {
                     const el = document.getElementById(id);
                     if (el) {
                         el.innerText = count > 99 ? '99+' : count;
-                        if (count > 0) el.classList.remove('hidden');
-                        else el.classList.add('hidden');
+                        if (count > 0) el.classList.remove('hidden'); else el.classList.add('hidden');
                     }
                 };
-
-                update('desktop-badge-stock', counts.stock);
-                update('desktop-badge-qc', counts.qc);
-                update('desktop-badge-pack', counts.pack);
-                update('desktop-badge-ship', counts.ship);
-
-                update('mobile-badge-stock', counts.stock);
-                update('mobile-badge-qc', counts.qc);
-                update('mobile-badge-pack', counts.pack);
+                update('desktop-badge-stock', counts.stock); update('desktop-badge-qc', counts.qc); update('desktop-badge-pack', counts.pack); update('desktop-badge-ship', counts.ship);
+                update('mobile-badge-stock', counts.stock); update('mobile-badge-qc', counts.qc); update('mobile-badge-pack', counts.pack);
             },
 
             loadDataLocal() {
                 const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-                if (stored) {
-                    this.data = JSON.parse(stored);
-                } else {
-                    this.data = { orders: [], users: {} };
-                }
+                this.data = stored ? JSON.parse(stored) : { orders: [], users: {} };
             },
 
             async saveData() {
-                if (useLocalStorage) {
-                    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(this.data));
-                    this.updateBadges();
-                    return;
-                }
+                if (useLocalStorage) { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(this.data)); this.updateBadges(); return; }
                 if (!this.user) return;
-                try {
-                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', COLLECTION_NAME, DOC_ID);
-                    await setDoc(docRef, this.data);
-                } catch (e) { console.error(e); }
+                try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', COLLECTION_NAME, DOC_ID), this.data); } catch (e) { console.error(e); }
             },
 
             seedData() {
                 const now = new Date();
                 const initialData = {
-                    users: {
-                        'admin': { pass: '1234', role: 'admin', name: 'ผู้ดูแลระบบ' },
-                        'manager': { pass: '1234', role: 'manager', name: 'หัวหน้าสมชาย' },
-                        'stock': { pass: '1234', role: 'stock', name: 'ทีมคลังสินค้า' },
-                        'qc': { pass: '1234', role: 'qc', name: 'ทีม QC' },
-                        'pack': { pass: '1234', role: 'pack', name: 'ทีมแพ็ค/ส่ง' }
-                    },
-                    orders: [
-                        {
-                            id: 'ORD-001', docNo: 'PO-2023-001', customer: 'บริษัท เทคโซลูชั่น จำกัด', date: new Date(now - 86400000).toLocaleString('th-TH'),
-                            status: 'pending_qc',
-                            items: [
-                                { name: 'เมาส์ไร้สาย', qty: 20, unit: 'ชิ้น', picked: 20, picks: [{lot:'L1', qty:20}], passed: 0, failed: 0, qc_reason: '' },
-                                { name: 'คีย์บอร์ดเกมมิ่ง', qty: 10, unit: 'ชิ้น', picked: 10, picks: [{lot:'L2', qty:10}], passed: 0, failed: 0, qc_reason: '' }
-                            ],
-                            logs: [{ action: 'สร้างออเดอร์', time: new Date(now - 86400000).toLocaleString('th-TH'), user: 'ระบบ' }]
-                        }
-                    ]
+                    users: { 'admin': { pass: '1234', role: 'admin', name: 'ผู้ดูแลระบบ' }, 'manager': { pass: '1234', role: 'manager', name: 'หัวหน้าสมชาย' }, 'stock': { pass: '1234', role: 'stock', name: 'ทีมคลังสินค้า' }, 'qc': { pass: '1234', role: 'qc', name: 'ทีม QC' }, 'pack': { pass: '1234', role: 'pack', name: 'ทีมแพ็ค/ส่ง' } },
+                    orders: [{ id: 'ORD-001', docNo: 'PO-2023-001', customer: 'บริษัท เทคโซลูชั่น จำกัด', date: new Date(now - 86400000).toLocaleString('th-TH'), status: 'pending_qc', items: [{ name: 'เมาส์ไร้สาย', qty: 20, unit: 'ชิ้น', picked: 20, picks: [{lot:'L1', qty:20}], passed: 0, failed: 0, qc_reason: '' }, { name: 'คีย์บอร์ดเกมมิ่ง', qty: 10, unit: 'ชิ้น', picked: 10, picks: [{lot:'L2', qty:10}], passed: 0, failed: 0, qc_reason: '' }], logs: [{ action: 'สร้างออเดอร์', time: new Date(now - 86400000).toLocaleString('th-TH'), user: 'ระบบ' }] }]
                 };
                 this.data = initialData;
                 this.saveData();
@@ -552,15 +483,12 @@
                 login() {
                     const u = document.getElementById('login-username').value;
                     const p = document.getElementById('login-password').value;
-                    
                     if (app.data.users && app.data.users[u] && app.data.users[u].pass === p) {
                         app.currentUser = { username: u, ...app.data.users[u] };
                         localStorage.setItem('warehouse_session_user', JSON.stringify(app.currentUser));
                         app.startApp();
                         app.ui.toast(`ยินดีต้อนรับ ${app.currentUser.name}`);
-                    } else {
-                        app.ui.toast('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'error');
-                    }
+                    } else { app.ui.toast('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'error'); }
                 },
                 logout() {
                     app.currentUser = null;
@@ -571,78 +499,41 @@
                     const html = `
                         <div class="space-y-4">
                             <div class="text-center">
-                                <div class="w-16 h-16 bg-slate-200 rounded-full mx-auto mb-2 overflow-hidden">
-                                     <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Avatar" class="h-full w-full">
-                                </div>
+                                <div class="w-16 h-16 bg-slate-200 rounded-full mx-auto mb-2 overflow-hidden"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Avatar" class="h-full w-full"></div>
                                 <h3 class="font-bold text-lg text-slate-800" id="profile-name-display">${app.currentUser.name}</h3>
                                 <p class="text-sm text-slate-500">ตำแหน่ง: ${ROLES[app.currentUser.role].name}</p>
                             </div>
                             <hr class="border-slate-100">
-                             <div>
-                                <label class="text-xs font-bold text-slate-500 mb-1 block">เปลี่ยนชื่อผู้ใช้</label>
-                                <input type="text" id="new-name" class="input-field w-full" placeholder="${app.currentUser.name}" value="${app.currentUser.name}">
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-slate-500 mb-1 block">เปลี่ยนรหัสผ่านใหม่ (ถ้าต้องการ)</label>
-                                <input type="password" id="new-password" class="input-field w-full" placeholder="ระบุรหัสผ่านใหม่">
-                            </div>
-                            <div class="pt-2">
-                                <button onclick="app.auth.logout()" class="w-full flex items-center justify-center gap-2 h-12 rounded-xl border border-rose-200 text-rose-600 font-bold hover:bg-rose-50 transition-colors">
-                                    <i data-lucide="log-out" class="w-4 h-4"></i> ออกจากระบบ
-                                </button>
-                            </div>
+                             <div><label class="text-xs font-bold text-slate-500 mb-1 block">เปลี่ยนชื่อผู้ใช้</label><input type="text" id="new-name" class="input-field w-full" value="${app.currentUser.name}"></div>
+                            <div><label class="text-xs font-bold text-slate-500 mb-1 block">เปลี่ยนรหัสผ่านใหม่</label><input type="password" id="new-password" class="input-field w-full" placeholder="ระบุรหัสผ่านใหม่"></div>
+                            <div class="pt-2"><button onclick="app.auth.logout()" class="w-full flex items-center justify-center gap-2 h-12 rounded-xl border border-rose-200 text-rose-600 font-bold hover:bg-rose-50 transition-colors"><i data-lucide="log-out" class="w-4 h-4"></i> ออกจากระบบ</button></div>
                         </div>
                     `;
                     app.ui.modalHTML('ข้อมูลผู้ใช้', html, () => {
                         const newName = document.getElementById('new-name').value;
                         const newPass = document.getElementById('new-password').value;
                         let updated = false;
-
-                        if (newName && newName !== app.currentUser.name) {
-                            app.data.users[app.currentUser.username].name = newName;
-                            app.currentUser.name = newName;
-                            document.getElementById('header-username').innerText = newName;
-                            updated = true;
-                        }
-
-                        if (newPass) {
-                            app.data.users[app.currentUser.username].pass = newPass;
-                            updated = true;
-                        }
-
-                        if (updated) {
-                            localStorage.setItem('warehouse_session_user', JSON.stringify(app.currentUser));
-                            app.saveData();
-                            app.ui.toast('บันทึกข้อมูลเรียบร้อย');
-                        }
+                        if (newName && newName !== app.currentUser.name) { app.data.users[app.currentUser.username].name = newName; app.currentUser.name = newName; document.getElementById('header-username').innerText = newName; updated = true; }
+                        if (newPass) { app.data.users[app.currentUser.username].pass = newPass; updated = true; }
+                        if (updated) { localStorage.setItem('warehouse_session_user', JSON.stringify(app.currentUser)); app.saveData(); app.ui.toast('บันทึกข้อมูลเรียบร้อย'); }
                     }, 'บันทึก');
                 }
             },
 
             router(page, param = null) {
-                if(!this.currentUser) return; // Guard
-
+                if(!this.currentUser) return; 
                 const main = document.getElementById('main-view');
                 if(!main) return;
 
                 let previousScrollTop = 0;
                 const isSameView = (this.currentPage === page && this.currentParam === param);
-                
-                if (isSameView) {
-                    previousScrollTop = main.scrollTop;
-                }
+                if (isSameView) previousScrollTop = main.scrollTop;
 
-                this.currentPage = page;
-                this.currentParam = param;
-                
+                this.currentPage = page; this.currentParam = param;
                 if (page !== 'detail' && page !== 'create') this.activeTab = page;
 
                 main.innerHTML = ''; 
-                
-                if (!isSameView) {
-                    window.scrollTo(0,0);
-                    main.scrollTop = 0;
-                }
+                if (!isSameView) { window.scrollTo(0,0); main.scrollTop = 0; }
 
                 const mobileNav = document.getElementById('mobile-nav');
                 const fab = document.getElementById('fab-create');
@@ -652,13 +543,8 @@
                     if(fab) fab.classList.add('hidden');
                 } else {
                     mobileNav.classList.remove('translate-y-full');
-                    // Permission Check for FAB: Only Manager can create
-                    const canCreate = (this.currentUser.role === 'manager');
-                    if(fab && canCreate) { 
-                         fab.classList.remove('hidden');
-                    } else if(fab) {
-                         fab.classList.add('hidden');
-                    }
+                    if(fab && (this.currentUser.role === 'manager')) fab.classList.remove('hidden');
+                    else if(fab) fab.classList.add('hidden');
                 }
 
                 document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(el => {
@@ -680,732 +566,165 @@
                     case 'create': this.views.renderCreateOrder(main); break;
                 }
                 lucide.createIcons();
-
-                if (isSameView) {
-                    setTimeout(() => {
-                         main.scrollTop = previousScrollTop;
-                    }, 0);
-                }
+                if (isSameView) setTimeout(() => { main.scrollTop = previousScrollTop; }, 0);
             },
 
             views: {
                 modalHTML(title, html, onConfirm, btnText='ยืนยัน') {
                     const overlay = document.getElementById('modal-overlay');
                     const content = document.getElementById('modal-content');
-                    
                     content.className = "bg-white w-full max-w-md rounded-3xl shadow-2xl transform scale-95 transition-transform duration-200 overflow-hidden flex flex-col max-h-[90dvh]";
-
-                    content.innerHTML = `
-                        <div class="px-6 pt-6 pb-2 flex-shrink-0 z-10 bg-white">
-                            <h3 class="text-xl font-bold text-slate-800">${title}</h3>
-                        </div>
-                        <div class="px-6 py-2 overflow-y-auto flex-1 min-h-0 overscroll-contain" style="-webkit-overflow-scrolling: touch;">
-                            ${html}
-                            <div class="h-8"></div> 
-                        </div>
-                        <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 flex-shrink-0 bg-slate-50 z-10">
-                            <button id="modal-cancel" class="h-10 px-6 text-sm text-slate-500 font-bold hover:bg-slate-200 rounded-xl transition-colors">ยกเลิก</button>
-                            <button id="modal-confirm" class="h-10 px-6 btn-blue text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-200 hover:shadow-blue-300 transition-all active:scale-95">${btnText}</button>
-                        </div>`;
-                    
-                    overlay.classList.remove('hidden');
-                    requestAnimationFrame(() => { overlay.classList.remove('opacity-0'); content.classList.remove('scale-95'); content.classList.add('scale-100'); });
-                    
-                    const close = () => { 
-                        overlay.classList.add('opacity-0'); 
-                        content.classList.add('scale-95'); 
-                        setTimeout(() => overlay.classList.add('hidden'), 300); 
-                    };
-                    
-                    document.getElementById('modal-cancel').onclick = close;
-                    document.getElementById('modal-confirm').onclick = () => { 
-                        onConfirm(); 
-                        close(); 
-                    };
+                    content.innerHTML = `<div class="px-6 pt-6 pb-2 flex-shrink-0 z-10 bg-white"><h3 class="text-xl font-bold text-slate-800">${title}</h3></div><div class="px-6 py-2 overflow-y-auto flex-1 min-h-0 overscroll-contain" style="-webkit-overflow-scrolling: touch;">${html}<div class="h-8"></div></div><div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 flex-shrink-0 bg-slate-50 z-10"><button id="modal-cancel" class="h-10 px-6 text-sm text-slate-500 font-bold hover:bg-slate-200 rounded-xl transition-colors">ยกเลิก</button><button id="modal-confirm" class="h-10 px-6 btn-blue text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-200 hover:shadow-blue-300 transition-all active:scale-95">${btnText}</button></div>`;
+                    overlay.classList.remove('hidden'); requestAnimationFrame(() => { overlay.classList.remove('opacity-0'); content.classList.remove('scale-95'); content.classList.add('scale-100'); });
+                    const close = () => { overlay.classList.add('opacity-0'); content.classList.add('scale-95'); setTimeout(() => overlay.classList.add('hidden'), 300); };
+                    document.getElementById('modal-cancel').onclick = close; document.getElementById('modal-confirm').onclick = () => { onConfirm(); close(); };
                 },
-                
-                renderHistory(container) {
-                    container.innerHTML = `
-                        <div class="p-4 lg:p-8 space-y-6 animate-fade-in max-w-4xl mx-auto pb-32">
-                            <h2 class="text-2xl font-bold text-slate-800">ประวัติการทำงาน</h2>
-                            <div class="bg-white p-4 rounded-3xl shadow-soft border border-slate-100 flex flex-col md:flex-row gap-4">
-                                <div class="flex-1">
-                                    <label class="text-xs font-bold text-slate-400 mb-1 block">ค้นหา</label>
-                                    <div class="relative">
-                                        <i data-lucide="search" class="absolute left-3 top-3 w-5 h-5 text-slate-400"></i>
-                                        <input type="text" id="history-search" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-brand-200 outline-none text-sm" placeholder="เลขเอกสาร / ชื่อลูกค้า...">
-                                    </div>
-                                </div>
-                                <div class="w-full md:w-48">
-                                    <label class="text-xs font-bold text-slate-400 mb-1 block">สถานะ</label>
-                                    <select id="history-filter-status" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-brand-200 outline-none text-sm appearance-none">
-                                        <option value="all">ทั้งหมด</option>
-                                        <option value="completed">เสร็จสมบูรณ์</option>
-                                        <option value="pending_stock">รอเบิก</option>
-                                        <option value="pending_qc">รอตรวจ QC</option>
-                                        <option value="pending_pack">รอแพ็ค</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div id="history-list" class="space-y-3"></div>
-                        </div>
-                    `;
 
+                renderHistory(container) {
+                    container.innerHTML = `<div class="p-4 lg:p-8 space-y-6 animate-fade-in max-w-4xl mx-auto pb-32"><h2 class="text-2xl font-bold text-slate-800">ประวัติการทำงาน</h2><div class="bg-white p-4 rounded-3xl shadow-soft border border-slate-100 flex flex-col md:flex-row gap-4"><div class="flex-1"><label class="text-xs font-bold text-slate-400 mb-1 block">ค้นหา</label><div class="relative"><i data-lucide="search" class="absolute left-3 top-3 w-5 h-5 text-slate-400"></i><input type="text" id="history-search" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-brand-200 outline-none text-sm" placeholder="เลขเอกสาร / ชื่อลูกค้า..."></div></div><div class="w-full md:w-48"><label class="text-xs font-bold text-slate-400 mb-1 block">สถานะ</label><select id="history-filter-status" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:ring-2 focus:ring-brand-200 outline-none text-sm appearance-none"><option value="all">ทั้งหมด</option><option value="completed">เสร็จสมบูรณ์</option><option value="pending_stock">รอเบิก</option><option value="pending_qc">รอตรวจ QC</option><option value="pending_pack">รอแพ็ค</option></select></div></div><div id="history-list" class="space-y-3"></div></div>`;
                     const renderList = () => {
                         const search = document.getElementById('history-search').value.toLowerCase();
                         const status = document.getElementById('history-filter-status').value;
-                        
-                        const filtered = app.data.orders.filter(o => {
-                            const matchSearch = o.docNo.toLowerCase().includes(search) || o.customer.toLowerCase().includes(search);
-                            const matchStatus = status === 'all' || o.status === status;
-                            return matchSearch && matchStatus;
-                        });
-
-                        const listHtml = filtered.length === 0 
-                            ? `<div class="text-center py-10 text-slate-400">ไม่พบข้อมูล</div>`
-                            : filtered.map(o => `
-                                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:shadow-md transition-all">
-                                    <div class="flex items-start gap-4 flex-1 cursor-pointer" onclick="app.router('detail', '${o.id}')">
-                                        <div class="p-3 bg-slate-50 rounded-xl text-slate-400">
-                                            <i data-lucide="file-clock" class="w-6 h-6"></i>
-                                        </div>
-                                        <div>
-                                            <div class="font-bold text-slate-800 text-lg">${o.docNo}</div>
-                                            <div class="text-sm text-slate-500">${o.customer}</div>
-                                            <div class="text-xs text-slate-400 mt-1 flex items-center gap-1"><i data-lucide="calendar" class="w-3 h-3"></i> ${o.date}</div>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center justify-between md:justify-end w-full md:w-auto gap-4 pt-4 md:pt-0 border-t md:border-t-0 border-slate-50">
-                                        <div class="text-right cursor-pointer" onclick="app.router('detail', '${o.id}')">
-                                            <div class="text-xs text-slate-400 mb-1">สถานะปัจจุบัน</div>
-                                            ${app.ui.badge(o.status)}
-                                        </div>
-                                        
-                                        <div class="flex items-center gap-3">
-                                            ${app.currentUser.role === 'manager' ? 
-                                                `<button onclick="event.stopPropagation(); app.logic.deleteOrder('${o.id}')" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="ลบเอกสาร">
-                                                    <i data-lucide="trash-2" class="w-5 h-5"></i>
-                                                </button>` 
-                                                : ''}
-                                            <i data-lucide="chevron-right" class="w-5 h-5 text-slate-300 cursor-pointer" onclick="app.router('detail', '${o.id}')"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('');
-                        
-                        document.getElementById('history-list').innerHTML = listHtml;
-                        lucide.createIcons();
+                        const filtered = app.data.orders.filter(o => { return (o.docNo.toLowerCase().includes(search) || o.customer.toLowerCase().includes(search)) && (status === 'all' || o.status === status); });
+                        const listHtml = filtered.length === 0 ? `<div class="text-center py-10 text-slate-400">ไม่พบข้อมูล</div>` : filtered.map(o => `<div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:shadow-md transition-all"><div class="flex items-start gap-4 flex-1 cursor-pointer" onclick="app.router('detail', '${o.id}')"><div class="p-3 bg-slate-50 rounded-xl text-slate-400"><i data-lucide="file-clock" class="w-6 h-6"></i></div><div><div class="font-bold text-slate-800 text-lg">${o.docNo}</div><div class="text-sm text-slate-500">${o.customer}</div><div class="text-xs text-slate-400 mt-1 flex items-center gap-1"><i data-lucide="calendar" class="w-3 h-3"></i> ${o.date}</div></div></div><div class="flex items-center justify-between md:justify-end w-full md:w-auto gap-4 pt-4 md:pt-0 border-t md:border-t-0 border-slate-50"><div class="text-right cursor-pointer" onclick="app.router('detail', '${o.id}')"><div class="text-xs text-slate-400 mb-1">สถานะปัจจุบัน</div>${app.ui.badge(o.status)}</div><div class="flex items-center gap-3">${app.currentUser.role === 'manager' ? `<button onclick="event.stopPropagation(); app.logic.deleteOrder('${o.id}')" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"><i data-lucide="trash-2" class="w-5 h-5"></i></button>` : ''}<i data-lucide="chevron-right" class="w-5 h-5 text-slate-300 cursor-pointer" onclick="app.router('detail', '${o.id}')"></i></div></div></div>`).join('');
+                        document.getElementById('history-list').innerHTML = listHtml; lucide.createIcons();
                     };
-
                     document.getElementById('history-search').addEventListener('input', renderList);
                     document.getElementById('history-filter-status').addEventListener('change', renderList);
                     renderList();
                 },
 
                 renderCreateOrder(container) {
-                    container.innerHTML = `
-                        <div class="animate-slide-in-right h-full flex flex-col bg-slate-50 min-h-screen">
-                            <div class="bg-white/90 backdrop-blur border-b border-slate-200 p-4 sticky top-0 z-30 flex items-center gap-3 shadow-sm">
-                                <button onclick="app.router(app.activeTab)" class="p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
-                                <h2 class="font-bold text-slate-800 text-lg">สร้างออเดอร์ใหม่</h2>
-                            </div>
-                            
-                            <div class="p-5 space-y-6 max-w-2xl mx-auto w-full flex-1">
-                                <div class="bg-white p-5 rounded-3xl shadow-soft border border-slate-100 space-y-4">
-                                    <h3 class="font-bold text-slate-700 flex items-center gap-2"><i data-lucide="file-text" class="w-5 h-5 text-brand-500"></i> ข้อมูลเอกสาร</h3>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label class="text-xs font-bold text-slate-500 mb-1.5 block">เลขที่เอกสาร</label>
-                                            <input type="text" id="new-doc" class="input-field w-full text-lg" placeholder="PO-XXXX">
-                                        </div>
-                                        <div>
-                                            <label class="text-xs font-bold text-slate-500 mb-1.5 block">วันที่</label>
-                                            <input type="date" id="new-date" class="input-field w-full text-lg">
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">ชื่อลูกค้า</label>
-                                        <input type="text" id="new-customer" class="input-field w-full text-lg" placeholder="ระบุชื่อลูกค้า...">
-                                    </div>
-                                </div>
-
-                                <div class="bg-white p-5 rounded-3xl shadow-soft border border-slate-100 space-y-4">
-                                    <div class="flex justify-between items-center">
-                                        <h3 class="font-bold text-slate-700 flex items-center gap-2"><i data-lucide="package" class="w-5 h-5 text-brand-500"></i> รายการสินค้า</h3>
-                                    </div>
-                                    <div id="new-items-list" class="space-y-3"></div>
-                                    <button onclick="app.logic.addInputRow()" class="w-full h-10 rounded-xl bg-brand-50 text-brand-600 font-bold border border-brand-100 hover:bg-brand-100 hover:border-brand-200 transition-all flex items-center justify-center gap-2 text-sm active:scale-[0.98]">
-                                        <i data-lucide="plus" class="w-4 h-4"></i> เพิ่มรายการสินค้า
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="sticky bottom-0 w-full bg-white/90 backdrop-blur border-t border-slate-200 p-5 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] mt-auto">
-                                <div class="max-w-2xl mx-auto w-full">
-                                    <button onclick="app.logic.submitNewOrder()" class="btn-main btn-blue">บันทึกออเดอร์</button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    document.getElementById('new-date').valueAsDate = new Date();
-                    app.logic.addInputRow(); 
-                    lucide.createIcons();
+                     container.innerHTML = `<div class="animate-slide-in-right min-h-full flex flex-col bg-slate-50 relative"><div class="bg-white/90 backdrop-blur border-b border-slate-200 p-4 sticky top-0 z-30 flex items-center gap-3 shadow-sm"><button onclick="app.router(app.activeTab)" class="p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"><i data-lucide="arrow-left" class="w-6 h-6"></i></button><h2 class="font-bold text-slate-800 text-lg">สร้างออเดอร์ใหม่</h2></div><div class="p-5 space-y-6 max-w-2xl mx-auto w-full flex-1"><div class="bg-white p-5 rounded-3xl shadow-soft border border-slate-100 space-y-4"><h3 class="font-bold text-slate-700 flex items-center gap-2"><i data-lucide="file-text" class="w-5 h-5 text-brand-500"></i> ข้อมูลเอกสาร</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="text-xs font-bold text-slate-500 mb-1.5 block">เลขที่เอกสาร</label><input type="text" id="new-doc" class="input-field w-full text-lg" placeholder="PO-XXXX"></div><div><label class="text-xs font-bold text-slate-500 mb-1.5 block">วันที่</label><input type="date" id="new-date" class="input-field w-full text-lg"></div></div><div><label class="text-xs font-bold text-slate-500 mb-1.5 block">ชื่อลูกค้า</label><input type="text" id="new-customer" class="input-field w-full text-lg" placeholder="ระบุชื่อลูกค้า..."></div></div><div class="bg-white p-5 rounded-3xl shadow-soft border border-slate-100 space-y-4"><div class="flex justify-between items-center"><h3 class="font-bold text-slate-700 flex items-center gap-2"><i data-lucide="package" class="w-5 h-5 text-brand-500"></i> รายการสินค้า</h3></div><div id="new-items-list" class="space-y-3"></div><button onclick="app.logic.addInputRow()" class="w-full h-10 rounded-xl bg-brand-50 text-brand-600 font-bold border border-brand-100 hover:bg-brand-100 hover:border-brand-200 transition-all flex items-center justify-center gap-2 text-sm active:scale-[0.98]"><i data-lucide="plus" class="w-4 h-4"></i> เพิ่มรายการสินค้า</button></div></div><div class="sticky bottom-0 w-full bg-white/90 backdrop-blur border-t border-slate-200 p-5 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] mt-auto"><div class="max-w-2xl mx-auto w-full"><button onclick="app.logic.submitNewOrder()" class="btn-main btn-blue">บันทึกออเดอร์</button></div></div></div>`;
+                    document.getElementById('new-date').valueAsDate = new Date(); app.logic.addInputRow(); lucide.createIcons();
                 },
 
                 renderDashboard(container) {
-                    const stats = {
-                        stock: app.data.orders.filter(o => o.status === 'pending_stock').length,
-                        qc: app.data.orders.filter(o => o.status === 'pending_qc').length,
-                        pack: app.data.orders.filter(o => o.status === 'pending_pack').length,
-                        ship: app.data.orders.filter(o => o.status === 'ready_ship').length
-                    };
+                    const stats = { stock: app.data.orders.filter(o => o.status === 'pending_stock').length, qc: app.data.orders.filter(o => o.status === 'pending_qc').length, pack: app.data.orders.filter(o => o.status === 'pending_pack').length, ship: app.data.orders.filter(o => o.status === 'ready_ship').length };
                     const recent = app.data.orders.slice(0, 5);
-
-                    container.innerHTML = `
-                        <div class="p-4 lg:p-8 space-y-6 animate-fade-in max-w-5xl mx-auto">
-                            <h2 class="text-2xl font-bold text-slate-800">ภาพรวม (Dashboard)</h2>
-                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                ${this.cardStat('รอเบิก', stats.stock, 'layers', 'bg-gradient-to-br from-orange-500 to-orange-400 text-white shadow-lg shadow-orange-200')}
-                                ${this.cardStat('รอตรวจ QC', stats.qc, 'clipboard-check', 'bg-gradient-to-br from-rose-500 to-rose-400 text-white shadow-lg shadow-rose-200')}
-                                ${this.cardStat('รอแพ็ค', stats.pack, 'box', 'bg-gradient-to-br from-blue-500 to-blue-400 text-white shadow-lg shadow-blue-200')}
-                                ${this.cardStat('รอส่ง', stats.ship, 'truck', 'bg-gradient-to-br from-emerald-500 to-emerald-400 text-white shadow-lg shadow-emerald-200')}
-                            </div>
-                            <div class="bg-white rounded-3xl shadow-soft border border-slate-100 overflow-hidden mt-6">
-                                <div class="p-6 border-b border-slate-50 flex justify-between items-center">
-                                    <h3 class="font-bold text-slate-700 text-lg">ออเดอร์ล่าสุด</h3>
-                                    <button class="text-xs text-brand-600 font-bold bg-brand-50 px-4 py-2 rounded-full hover:bg-brand-100 transition-colors">ดูทั้งหมด</button>
-                                </div>
-                                <div class="divide-y divide-slate-50">
-                                    ${recent.map(o => `
-                                        <div onclick="app.router('detail', '${o.id}')" class="p-5 flex items-center justify-between hover:bg-slate-50 cursor-pointer transition-colors active:bg-slate-100 group">
-                                            <div class="flex items-center gap-4">
-                                                <div class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors"><i data-lucide="package" class="w-6 h-6"></i></div>
-                                                <div><div class="font-bold text-base text-slate-800">${o.customer}</div><div class="text-xs text-slate-400 mt-1">${o.docNo} • ${o.items.length} รายการ</div></div>
-                                            </div>
-                                            ${app.ui.badge(o.status)}
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        </div>
-                    `;
+                    container.innerHTML = `<div class="p-4 lg:p-8 space-y-6 animate-fade-in max-w-5xl mx-auto"><h2 class="text-2xl font-bold text-slate-800">ภาพรวม (Dashboard)</h2><div class="grid grid-cols-2 lg:grid-cols-4 gap-4">${this.cardStat('รอเบิก', stats.stock, 'layers', 'bg-gradient-to-br from-orange-500 to-orange-400 text-white shadow-lg shadow-orange-200')}${this.cardStat('รอตรวจ QC', stats.qc, 'clipboard-check', 'bg-gradient-to-br from-rose-500 to-rose-400 text-white shadow-lg shadow-rose-200')}${this.cardStat('รอแพ็ค', stats.pack, 'box', 'bg-gradient-to-br from-blue-500 to-blue-400 text-white shadow-lg shadow-blue-200')}${this.cardStat('รอส่ง', stats.ship, 'truck', 'bg-gradient-to-br from-emerald-500 to-emerald-400 text-white shadow-lg shadow-emerald-200')}</div><div class="bg-white rounded-3xl shadow-soft border border-slate-100 overflow-hidden mt-6"><div class="p-6 border-b border-slate-50 flex justify-between items-center"><h3 class="font-bold text-slate-700 text-lg">ออเดอร์ล่าสุด</h3><button class="text-xs text-brand-600 font-bold bg-brand-50 px-4 py-2 rounded-full hover:bg-brand-100 transition-colors">ดูทั้งหมด</button></div><div class="divide-y divide-slate-50">${recent.map(o => `<div onclick="app.router('detail', '${o.id}')" class="p-5 flex items-center justify-between hover:bg-slate-50 cursor-pointer transition-colors active:bg-slate-100 group"><div class="flex items-center gap-4"><div class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors"><i data-lucide="package" class="w-6 h-6"></i></div><div><div class="font-bold text-base text-slate-800">${o.customer}</div><div class="text-xs text-slate-400 mt-1">${o.docNo} • ${o.items.length} รายการ</div></div></div>${app.ui.badge(o.status)}</div>`).join('')}</div></div></div>`;
                 },
 
                 renderList(container, status, title, icon, colorClass) {
                     const list = app.data.orders.filter(o => o.status === status);
-                    
                     let iconBg = 'bg-slate-100 text-slate-600';
-                    if (status === 'pending_stock') iconBg = 'bg-orange-100 text-orange-600';
-                    if (status === 'pending_qc') iconBg = 'bg-rose-100 text-rose-600';
-                    if (status === 'pending_pack') iconBg = 'bg-blue-100 text-blue-600';
-                    if (status === 'ready_ship') iconBg = 'bg-emerald-100 text-emerald-600';
-
-                    container.innerHTML = `
-                        <div class="p-4 lg:p-8 space-y-6 animate-fade-in pb-32 max-w-3xl mx-auto">
-                            <div class="flex items-center gap-4 mb-6">
-                                <div class="p-3 rounded-2xl ${iconBg} shadow-sm"><i data-lucide="${icon}" class="w-7 h-7"></i></div>
-                                <div><h2 class="text-2xl font-bold text-slate-800">${title}</h2><p class="text-sm text-slate-500">จำนวน ${list.length} รายการ</p></div>
-                            </div>
-                            <div class="space-y-4">
-                                ${list.length === 0 ? `<div class="text-center py-20 text-slate-400 bg-white rounded-3xl border border-dashed border-slate-200"><div class="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"><i data-lucide="inbox" class="w-10 h-10 opacity-30"></i></div><p>ไม่พบออเดอร์ในสถานะนี้</p></div>` : list.map(o => {
-                                    const isRework = o.docNo.includes('(Rework)');
-                                    const displayDocNo = o.docNo.replace('(Rework)', '').trim();
-                                    
-                                    return `
-                                    <div onclick="app.router('detail', '${o.id}')" class="bg-white p-6 rounded-3xl shadow-soft border border-slate-100 active:scale-[0.98] transition-all cursor-pointer hover:shadow-lg hover:border-brand-200 relative overflow-hidden group">
-                                        ${isRework ? '<div class="absolute top-0 right-0 bg-red-500 text-white text-[10px] px-3 py-1 rounded-bl-xl font-bold shadow-md z-10 flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3 h-3"></i> งานแก้ (Rework)</div>' : ''}
-                                        <div class="flex justify-between items-start mb-3"><span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-lg tracking-wide border border-slate-200">${o.id}</span><span class="text-xs text-slate-400">${o.date.split(',')[0]}</span></div>
-                                        <h3 class="font-bold text-slate-800 text-lg mb-1 group-hover:text-brand-600 transition-colors">${o.customer}</h3>
-                                        <div class="flex items-center gap-2 mb-5">
-                                            <p class="text-sm text-slate-500 flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg"><i data-lucide="file-text" class="w-3.5 h-3.5 text-slate-400"></i> ${displayDocNo}</p>
-                                        </div>
-                                        <div class="flex items-center justify-between border-t border-slate-50 pt-4"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">${o.items.length} รายการสินค้า</span></div>
-                                    </div>
-                                `}).join('')}
-                            </div>
-                        </div>
-                    `;
+                    if (status === 'pending_stock') iconBg = 'bg-orange-100 text-orange-600'; else if (status === 'pending_qc') iconBg = 'bg-rose-100 text-rose-600'; else if (status === 'pending_pack') iconBg = 'bg-blue-100 text-blue-600'; else if (status === 'ready_ship') iconBg = 'bg-emerald-100 text-emerald-600';
+                    container.innerHTML = `<div class="p-4 lg:p-8 space-y-6 animate-fade-in pb-32 max-w-3xl mx-auto"><div class="flex items-center gap-4 mb-6"><div class="p-3 rounded-2xl ${iconBg} shadow-sm"><i data-lucide="${icon}" class="w-7 h-7"></i></div><div><h2 class="text-2xl font-bold text-slate-800">${title}</h2><p class="text-sm text-slate-500">จำนวน ${list.length} รายการ</p></div></div><div class="space-y-4">${list.length === 0 ? `<div class="text-center py-20 text-slate-400 bg-white rounded-3xl border border-dashed border-slate-200"><div class="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"><i data-lucide="inbox" class="w-10 h-10 opacity-30"></i></div><p>ไม่พบออเดอร์ในสถานะนี้</p></div>` : list.map(o => `<div onclick="app.router('detail', '${o.id}')" class="bg-white p-6 rounded-3xl shadow-soft border border-slate-100 active:scale-[0.98] transition-all cursor-pointer hover:shadow-lg hover:border-brand-200 relative overflow-hidden group">${o.docNo.includes('(Rework)') ? '<div class="absolute top-0 right-0 bg-red-500 text-white text-[10px] px-3 py-1 rounded-bl-xl font-bold shadow-md z-10 flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3 h-3"></i> งานแก้ (Rework)</div>' : ''}<div class="flex justify-between items-start mb-3"><span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-lg tracking-wide border border-slate-200">${o.id}</span><span class="text-xs text-slate-400">${o.date.split(',')[0]}</span></div><h3 class="font-bold text-slate-800 text-lg mb-1 group-hover:text-brand-600 transition-colors">${o.customer}</h3><div class="flex items-center gap-2 mb-5"><p class="text-sm text-slate-500 flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg"><i data-lucide="file-text" class="w-3.5 h-3.5 text-slate-400"></i> ${o.docNo.replace('(Rework)', '').trim()}</p></div><div class="flex items-center justify-between border-t border-slate-50 pt-4"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">${o.items.length} รายการสินค้า</span></div></div>`).join('')}</div></div>`;
                 },
 
                 renderDetail(container, id) {
                     const order = app.data.orders.find(o => o.id === id);
                     if (!order) return app.router('dashboard');
-
-                    let content = '';
-                    let footer = '';
-
+                    let content = ''; let footer = '';
                     const isAdmin = app.currentUser.role === 'admin';
                     const isManager = app.currentUser.role === 'manager';
                     const isStock = app.currentUser.role === 'stock';
                     const isQC = app.currentUser.role === 'qc';
                     const isPack = app.currentUser.role === 'pack';
-
                     const isRework = order.docNo.includes('(Rework)');
                     const displayDocNo = order.docNo.replace('(Rework)', '').trim();
-
-                    // Viewer/Auditor logic: canEdit is FALSE for admin.
-                    const canEdit = isManager || 
-                                   (order.status === 'pending_stock' && isStock) ||
-                                   (order.status === 'pending_qc' && isQC) ||
-                                   ((order.status === 'pending_pack' || order.status === 'ready_ship') && isPack);
+                    const canEdit = isManager || (order.status === 'pending_stock' && isStock) || (order.status === 'pending_qc' && isQC) || ((order.status === 'pending_pack' || order.status === 'ready_ship') && isPack);
 
                     if (order.status === 'pending_stock') {
                         content = this.renderStockContent(order, canEdit);
-                        if (canEdit) {
-                            footer = `<button onclick="app.logic.validateStock('${id}')" class="btn-main btn-orange">ยืนยันส่งตรวจสอบ</button>`;
-                        }
+                        if (canEdit) footer = `<button onclick="app.logic.validateStock('${id}')" class="btn-main btn-orange">ยืนยันส่งตรวจสอบ</button>`;
                     } else if (order.status === 'pending_qc') {
                         content = this.renderQCContent(order, canEdit);
-                        if (canEdit) {
-                            footer = `<button onclick="app.logic.submitQC('${id}')" class="btn-main btn-rose"><i data-lucide="save" class="w-5 h-5"></i> บันทึกผล QC</button>`;
-                        }
+                        if (canEdit) footer = `<button onclick="app.logic.submitQC('${id}')" class="btn-main btn-rose"><i data-lucide="save" class="w-5 h-5"></i> บันทึกผล QC</button>`;
                     } else if (order.status === 'pending_pack') {
-                         content = this.renderReadOnlyContent(order);
-                         if (canEdit) {
-                             footer = `
-                             <div class="space-y-3">
-                                 <button onclick="app.logic.printLabel('${id}')" class="w-full h-14 text-lg rounded-2xl font-bold btn-grey flex items-center justify-center gap-2"><i data-lucide="printer" class="w-5 h-5"></i> พิมพ์ Label ปิดกล่อง</button>
-                                 <button onclick="app.logic.moveStatus('${id}', 'ready_ship', 'แพ็คสินค้าแล้ว')" class="btn-main btn-blue">ยืนยันแพ็คเสร็จสิ้น</button>
-                             </div>`;
-                         } else {
-                             // Admin/Manager viewer can print
-                             if(isAdmin || isManager) {
-                                footer = `
-                                 <div class="space-y-3">
-                                     <button onclick="app.logic.printLabel('${id}')" class="w-full h-14 text-lg rounded-2xl font-bold btn-grey flex items-center justify-center gap-2"><i data-lucide="printer" class="w-5 h-5"></i> พิมพ์ Label ปิดกล่อง</button>
-                                 </div>`;
-                             }
-                         }
+                        content = this.renderPackContent(order, canEdit);
+                        if (canEdit) footer = `<div class="space-y-3"><button onclick="app.logic.printLabel('${id}')" class="w-full h-14 text-lg rounded-2xl font-bold btn-grey flex items-center justify-center gap-2"><i data-lucide="printer" class="w-5 h-5"></i> พิมพ์ Label ปิดกล่อง</button><button onclick="app.logic.moveStatus('${id}', 'ready_ship', 'แพ็คสินค้าแล้ว')" class="btn-main btn-blue">ยืนยันแพ็คเสร็จสิ้น</button></div>`;
+                        else if (isAdmin || isManager) footer = `<div class="space-y-3"><button onclick="app.logic.printLabel('${id}')" class="w-full h-14 text-lg rounded-2xl font-bold btn-grey flex items-center justify-center gap-2"><i data-lucide="printer" class="w-5 h-5"></i> พิมพ์ Label ปิดกล่อง</button></div>`;
                     } else if (order.status === 'ready_ship') {
                          content = this.renderReadOnlyContent(order);
-                         if (canEdit) {
-                             footer = `
-                             <div class="space-y-3">
-                                 <button onclick="app.logic.printLabel('${id}')" class="w-full h-14 text-lg rounded-2xl font-bold btn-grey flex items-center justify-center gap-2"><i data-lucide="printer" class="w-5 h-5"></i> พิมพ์ Label ปิดกล่อง</button>
-                                 <button onclick="app.logic.moveStatus('${id}', 'completed', 'จัดส่งแล้ว')" class="btn-main btn-emerald">ยืนยันการจัดส่ง</button>
-                             </div>`;
-                         } else {
-                              if(isAdmin || isManager) {
-                                footer = `
-                                 <div class="space-y-3">
-                                     <button onclick="app.logic.printLabel('${id}')" class="w-full h-14 text-lg rounded-2xl font-bold btn-grey flex items-center justify-center gap-2"><i data-lucide="printer" class="w-5 h-5"></i> พิมพ์ Label ปิดกล่อง</button>
-                                 </div>`;
-                             }
-                         }
-                    } else {
-                        content = this.renderReadOnlyContent(order);
-                    }
+                         if (canEdit) footer = `<div class="space-y-3"><button onclick="app.logic.printLabel('${id}')" class="w-full h-14 text-lg rounded-2xl font-bold btn-grey flex items-center justify-center gap-2"><i data-lucide="printer" class="w-5 h-5"></i> พิมพ์ Label ปิดกล่อง</button><button onclick="app.logic.moveStatus('${id}', 'completed', 'จัดส่งแล้ว')" class="btn-main btn-emerald">ยืนยันการจัดส่ง</button></div>`;
+                         else if (isAdmin || isManager) footer = `<div class="space-y-3"><button onclick="app.logic.printLabel('${id}')" class="w-full h-14 text-lg rounded-2xl font-bold btn-grey flex items-center justify-center gap-2"><i data-lucide="printer" class="w-5 h-5"></i> พิมพ์ Label ปิดกล่อง</button></div>`;
+                    } else { content = this.renderReadOnlyContent(order); }
 
                     container.innerHTML = `
                         <div class="animate-slide-in-right h-full flex flex-col bg-slate-50">
                             <div class="bg-white/80 backdrop-blur-md border-b border-slate-200 p-4 sticky top-0 z-20 flex items-center gap-3 shadow-sm">
                                 <button onclick="app.router(app.activeTab)" class="p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
-                                <div class="flex-1 min-w-0">
-                                    <h2 class="font-bold text-slate-800 leading-tight truncate text-lg">${order.customer}</h2>
-                                    <div class="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
-                                        <span>${order.id}</span> • <span>${displayDocNo}</span>
-                                    </div>
-                                    ${isRework ? '<div class="mt-2 animate-pulse-bg inline-flex items-center gap-1 bg-red-100 text-red-600 px-3 py-1 rounded-lg text-[10px] font-bold border border-red-200"><i data-lucide="alert-triangle" class="w-3 h-3"></i> งานแก้ (Rework)</div>' : ''}
-                                </div>
+                                <div class="flex-1 min-w-0"><h2 class="font-bold text-slate-800 leading-tight truncate text-lg">${order.customer}</h2><div class="flex items-center gap-2 text-xs text-slate-500 mt-0.5"><span>${order.id}</span> • <span>${displayDocNo}</span></div>${isRework ? '<div class="mt-2 animate-pulse-bg inline-flex items-center gap-1 bg-red-100 text-red-600 px-3 py-1 rounded-lg text-[10px] font-bold border border-red-200"><i data-lucide="alert-triangle" class="w-3 h-3"></i> งานแก้ (Rework)</div>' : ''}</div>
                                 <div class="ml-auto scale-90 origin-right">${app.ui.badge(order.status)}</div>
                             </div>
                             <div class="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6 pb-40 max-w-3xl mx-auto w-full">
                                 ${content}
-                                <div class="border-t border-slate-200 pt-8 mt-4">
-                                    <h3 class="font-bold text-slate-700 mb-6 flex items-center gap-2 text-sm uppercase tracking-wide"><i data-lucide="history" class="w-4 h-4 text-slate-400"></i> ประวัติออเดอร์</h3>
-                                    <div class="space-y-0 pl-2 border-l-2 border-slate-200 ml-2">
-                                        ${order.logs.map(log => `<div class="relative pl-6 pb-8 last:pb-0"><div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-slate-300"></div><p class="text-sm font-bold text-slate-700">${log.action}</p><p class="text-xs text-slate-400 mt-0.5">${log.time} • ${log.user}</p>${log.detail ? `<p class="text-xs text-slate-600 mt-2 bg-white p-2 rounded border border-slate-100 shadow-sm inline-block">${log.detail}</p>` : ''}</div>`).join('')}
-                                    </div>
-                                </div>
+                                <div class="border-t border-slate-200 pt-8 mt-4"><h3 class="font-bold text-slate-700 mb-6 flex items-center gap-2 text-sm uppercase tracking-wide"><i data-lucide="history" class="w-4 h-4 text-slate-400"></i> ประวัติออเดอร์</h3><div class="space-y-0 pl-2 border-l-2 border-slate-200 ml-2">${order.logs.map(log => `<div class="relative pl-6 pb-8 last:pb-0"><div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-slate-300"></div><p class="text-sm font-bold text-slate-700">${log.action}</p><p class="text-xs text-slate-400 mt-0.5">${log.time} • ${log.user}</p>${log.detail ? `<p class="text-xs text-slate-600 mt-2 bg-white p-2 rounded border border-slate-100 shadow-sm inline-block">${log.detail}</p>` : ''}</div>`).join('')}</div></div>
                             </div>
                             ${footer ? `<div class="fixed lg:absolute bottom-0 w-full lg:w-auto left-0 right-0 bg-white/90 backdrop-blur border-t border-slate-200 p-5 z-50 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">${footer}</div>` : ''}
-                        </div>
-                    `;
+                        </div>`;
                 },
 
-                cardStat(label, val, icon, bgClass) {
-                    return `<div class="bg-white p-5 rounded-3xl shadow-soft border border-slate-100 flex items-center justify-between hover:shadow-md transition-shadow"><div><p class="text-xs text-slate-500 font-bold uppercase tracking-wide mb-1">${label}</p><p class="text-3xl font-bold text-slate-800">${val}</p></div><div class="p-3.5 rounded-2xl ${bgClass}"><i data-lucide="${icon}" class="w-6 h-6"></i></div></div>`;
-                },
+                cardStat(label, val, icon, bgClass) { return `<div class="bg-white p-5 rounded-3xl shadow-soft border border-slate-100 flex items-center justify-between hover:shadow-md transition-shadow"><div><p class="text-xs text-slate-500 font-bold uppercase tracking-wide mb-1">${label}</p><p class="text-3xl font-bold text-slate-800">${val}</p></div><div class="p-3.5 rounded-2xl ${bgClass}"><i data-lucide="${icon}" class="w-6 h-6"></i></div></div>`; },
 
                 renderStockContent(order, canEdit) {
                     const disabledAttr = canEdit ? '' : 'disabled';
                     const inputBgClass = canEdit ? 'bg-white' : 'bg-slate-100 text-slate-500';
-
-                    return `
-                        <div class="space-y-4">
-                            ${order.items.map((item, idx) => {
-                                const totalPicked = item.picks.reduce((sum, p) => sum + (parseInt(p.qty)||0), 0);
-                                const isShort = totalPicked < item.qty;
-                                const isOver = totalPicked > item.qty;
-                                const statusColor = isOver ? 'text-red-500' : (isShort ? 'text-orange-500' : 'text-emerald-500');
-                                const cardBorder = !isShort && !isOver ? 'border-emerald-500 ring-1 ring-emerald-100' : 'border-slate-200';
-
-                                return `
-                                <div class="bg-white rounded-3xl shadow-soft border ${cardBorder} overflow-hidden transition-all duration-300">
-                                    <div class="p-5 border-b border-slate-50 flex justify-between items-start bg-slate-50/30">
-                                        <div><div class="font-bold text-slate-800 text-lg">${item.name}</div><div class="text-sm text-slate-500 mt-1">จำนวนที่สั่ง: <span class="font-bold text-slate-800">${item.qty} ${item.unit}</span></div></div>
-                                        <div class="text-right bg-white px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm"><div class="text-[10px] text-slate-400 font-bold uppercase tracking-wide">ยอดเบิก</div><div id="stock-total-${idx}" class="font-black text-xl ${statusColor}">${totalPicked}</div></div>
-                                    </div>
-                                    <div class="p-4 space-y-3" id="picks-container-${idx}">
-                                        ${item.picks.map((pick, pIdx) => `
-                                            <div class="flex gap-3 items-center animate-slide-up group">
-                                                <div class="relative flex-1">
-                                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i data-lucide="scan-barcode" class="w-4 h-4 text-slate-400 group-focus-within:text-brand-500 transition-colors"></i></div>
-                                                    <input type="text" placeholder="ระบุ Lot" value="${pick.lot}" ${disabledAttr} oninput="app.logic.updatePick('${order.id}', ${idx}, ${pIdx}, 'lot', this.value, false)" onchange="app.saveData()" class="w-full pl-10 pr-3 py-3 ${inputBgClass} border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-100 focus:border-brand-400 outline-none transition-all placeholder-slate-300 shadow-sm">
-                                                </div>
-                                                <div class="w-24 relative">
-                                                    <input type="number" inputmode="numeric" onclick="this.select()" placeholder="0" value="${pick.qty}" ${disabledAttr} oninput="app.logic.updatePick('${order.id}', ${idx}, ${pIdx}, 'qty', this.value, false)" onchange="app.saveData()" class="w-full py-3 text-center text-sm font-bold ${inputBgClass} border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-100 focus:border-brand-400 outline-none transition-all placeholder-slate-300 shadow-sm">
-                                                </div>
-                                                ${canEdit ? `<button onclick="app.logic.removePick('${order.id}', ${idx}, ${pIdx})" class="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors border border-transparent hover:border-red-100"><i data-lucide="trash-2" class="w-5 h-5"></i></button>` : ''}
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                    ${canEdit ? `<div class="p-3 bg-slate-50 border-t border-slate-100">
-                                        <button onclick="app.logic.addPick('${order.id}', ${idx})" class="w-full h-10 text-sm font-bold text-slate-600 bg-white border border-slate-200 hover:bg-white hover:border-slate-300 hover:shadow-md rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-sm"><i data-lucide="plus" class="w-4 h-4 text-slate-400"></i> เพิ่ม Lot สินค้า</button>
-                                    </div>` : ''}
-                                </div>
-                                `;
-                            }).join('')}
-                        </div>
-                    `;
+                    return `<div class="space-y-4">${order.items.map((item, idx) => {
+                        const totalPicked = item.picks.reduce((sum, p) => sum + (parseInt(p.qty)||0), 0);
+                        const statusColor = totalPicked > item.qty ? 'text-red-500' : (totalPicked < item.qty ? 'text-orange-500' : 'text-emerald-500');
+                        return `<div class="bg-white rounded-3xl shadow-soft border border-slate-200 overflow-hidden transition-all duration-300">
+                            <div class="p-5 border-b border-slate-50 flex justify-between items-start bg-slate-50/30"><div><div class="font-bold text-slate-800 text-lg">${item.name}</div><div class="text-sm text-slate-500 mt-1">จำนวนที่สั่ง: <span class="font-bold text-slate-800">${item.qty} ${item.unit}</span></div></div><div class="text-right bg-white px-3 py-1.5 rounded-xl border border-slate-100 shadow-sm"><div class="text-[10px] text-slate-400 font-bold uppercase tracking-wide">ยอดเบิก</div><div id="stock-total-${idx}" class="font-black text-xl ${statusColor}">${totalPicked}</div></div></div>
+                            <div class="p-4 space-y-3" id="picks-container-${idx}">${item.picks.map((pick, pIdx) => `<div class="flex gap-3 items-center animate-slide-up group"><div class="relative flex-1"><div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i data-lucide="scan-barcode" class="w-4 h-4 text-slate-400"></i></div><input type="text" placeholder="ระบุ Lot" value="${pick.lot}" ${disabledAttr} oninput="app.logic.updatePick('${order.id}', ${idx}, ${pIdx}, 'lot', this.value, false)" onchange="app.saveData()" class="w-full pl-10 pr-3 py-3 ${inputBgClass} border border-slate-200 rounded-xl text-sm outline-none shadow-sm"></div><div class="w-24 relative"><input type="number" inputmode="numeric" onclick="this.select()" placeholder="0" value="${pick.qty}" ${disabledAttr} oninput="app.logic.updatePick('${order.id}', ${idx}, ${pIdx}, 'qty', this.value, false)" onchange="app.saveData()" class="w-full py-3 text-center text-sm font-bold ${inputBgClass} border border-slate-200 rounded-xl outline-none shadow-sm"></div>${canEdit ? `<button onclick="app.logic.removePick('${order.id}', ${idx}, ${pIdx})" class="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl border border-transparent hover:border-red-100"><i data-lucide="trash-2" class="w-5 h-5"></i></button>` : ''}</div>`).join('')}</div>
+                            ${canEdit ? `<div class="p-3 bg-slate-50 border-t border-slate-100"><button onclick="app.logic.addPick('${order.id}', ${idx})" class="w-full h-10 text-sm font-bold text-slate-600 bg-white border border-slate-200 hover:bg-white hover:border-slate-300 hover:shadow-md rounded-xl flex items-center justify-center gap-2 shadow-sm"><i data-lucide="plus" class="w-4 h-4 text-slate-400"></i> เพิ่ม Lot สินค้า</button></div>` : ''}
+                        </div>`; }).join('')}</div>`;
                 },
 
                 renderQCContent(order, canEdit) {
                     const disabledAttr = canEdit ? '' : 'disabled';
                     const inputBgClass = canEdit ? 'bg-white' : 'bg-slate-100 text-slate-500';
-
-                    return `
-                        <div class="space-y-4">
-                            ${order.items.map((item, idx) => {
-                                const remaining = item.qty - (item.passed + item.failed);
-                                const isComplete = remaining === 0;
-                                const cardBorder = isComplete ? 'border-emerald-500 ring-1 ring-emerald-100' : 'border-slate-200';
-                                
-                                return `
-                                <div id="qc-card-${idx}" class="bg-white rounded-3xl shadow-soft border ${cardBorder} overflow-hidden transition-all duration-300">
-                                    <div class="p-5 border-b border-slate-50 flex justify-between items-start bg-slate-50/30">
-                                        <div>
-                                            <div class="font-bold text-slate-800 text-lg">${item.name}</div>
-                                            <div class="flex flex-wrap gap-2 mt-2">
-                                                ${item.picks.map(p => p.lot ? `<span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded border border-slate-200 font-mono">LOT: ${p.lot}</span>` : '').join('')}
-                                            </div>
-                                        </div>
-                                        <div class="text-right"><span class="text-xs font-bold bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-xl shadow-sm">จำนวน: ${item.qty}</span></div>
-                                    </div>
-                                    <div class="p-5 space-y-5">
-                                        <div class="flex gap-4">
-                                            <!-- Pass Input -->
-                                            <div class="flex-1 bg-emerald-50/30 p-4 rounded-2xl border border-emerald-100 transition-colors focus-within:border-emerald-300 focus-within:bg-emerald-50 focus-within:shadow-sm">
-                                                <label class="text-xs font-bold text-emerald-700 mb-2 flex items-center gap-1.5 uppercase tracking-wide"><div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> ผ่าน (Pass)</label>
-                                                <input id="qc-input-passed-${idx}" type="number" inputmode="numeric" value="${item.passed}" ${disabledAttr} oninput="app.logic.setQC('${order.id}', ${idx}, 'passed', this.value, false)" onchange="app.saveData()" onclick="this.select()" class="w-full text-center text-3xl font-bold text-emerald-600 ${inputBgClass} border border-emerald-200 rounded-xl py-3 outline-none focus:ring-4 focus:ring-emerald-100 focus:border-emerald-400 transition-all placeholder-emerald-200/50 shadow-sm" placeholder="0">
-                                            </div>
-                                            
-                                            <!-- Fail Input -->
-                                            <div class="flex-1 bg-rose-50/30 p-4 rounded-2xl border border-rose-100 transition-colors focus-within:border-rose-300 focus-within:bg-rose-50 focus-within:shadow-sm">
-                                                <label class="text-xs font-bold text-rose-700 mb-2 flex items-center gap-1.5 uppercase tracking-wide"><div class="w-1.5 h-1.5 rounded-full bg-rose-500"></div> ไม่ผ่าน (Fail)</label>
-                                                <input id="qc-input-failed-${idx}" type="number" inputmode="numeric" value="${item.failed}" ${disabledAttr} oninput="app.logic.setQC('${order.id}', ${idx}, 'failed', this.value, false)" onchange="app.saveData()" onclick="this.select()" class="w-full text-center text-3xl font-bold text-rose-600 ${inputBgClass} border border-rose-200 rounded-xl py-3 outline-none focus:ring-4 focus:ring-rose-100 focus:border-rose-400 transition-all placeholder-rose-200/50 shadow-sm" placeholder="0">
-                                            </div>
-                                        </div>
-
-                                        <!-- Reason Input (Toggle Visibility) -->
-                                        <div id="qc-reason-container-${idx}" class="${item.failed > 0 ? '' : 'hidden'} animate-slide-up bg-rose-50 p-4 rounded-2xl border border-rose-100">
-                                            <label class="text-[10px] font-bold text-rose-500 uppercase flex items-center gap-1"><i data-lucide="alert-circle" class="w-3 h-3"></i> สาเหตุที่สินค้าไม่ผ่าน</label>
-                                            <input type="text" placeholder="ระบุสาเหตุ (เช่น แตกหัก, สีเพี้ยน, เป็นรอย)" value="${item.qc_reason}" ${disabledAttr} oninput="app.logic.updateQCReason('${order.id}', ${idx}, this.value)" class="w-full ${inputBgClass} border border-rose-200 text-rose-800 text-sm rounded-lg p-3 mt-2 focus:ring-2 focus:ring-rose-200 focus:border-rose-300 outline-none shadow-sm placeholder-rose-300">
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Status Bar (Non-clickable) -->
-                                    <div class="${isComplete ? '' : 'hidden'} w-full py-2 bg-emerald-100 text-emerald-700 border-t border-emerald-200 text-xs font-bold text-center flex items-center justify-center gap-1.5 cursor-default"><i data-lucide="check-check" class="w-4 h-4"></i> ตรวจครบจำนวนแล้ว</div>
+                    return `<div class="space-y-4">${order.items.map((item, idx) => {
+                        const isComplete = (item.passed + item.failed) === item.qty;
+                        const cardBorder = isComplete ? 'border-emerald-500 ring-1 ring-emerald-100' : 'border-slate-200';
+                        return `<div id="qc-card-${idx}" class="bg-white rounded-3xl shadow-soft border ${cardBorder} overflow-hidden transition-all duration-300">
+                            <div class="p-5 border-b border-slate-50 flex justify-between items-start bg-slate-50/30"><div><div class="font-bold text-slate-800 text-lg">${item.name}</div><div class="flex flex-wrap gap-2 mt-2">${item.picks.map(p => p.lot ? `<span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded border border-slate-200 font-mono">LOT: ${p.lot}</span>` : '').join('')}</div></div><div class="text-right"><span class="text-xs font-bold bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-xl shadow-sm">จำนวน: ${item.qty}</span></div></div>
+                            <div class="p-5 space-y-5">
+                                <div class="flex gap-4">
+                                    <div class="flex-1 bg-emerald-50/30 p-4 rounded-2xl border border-emerald-100 transition-colors"><label class="text-xs font-bold text-emerald-700 mb-2 flex items-center gap-1.5 uppercase tracking-wide"><div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> ผ่าน (Pass)</label><input id="qc-input-passed-${idx}" type="number" inputmode="numeric" value="${item.passed}" ${disabledAttr} oninput="app.logic.setQC('${order.id}', ${idx}, 'passed', this.value, false)" onchange="app.saveData()" onclick="this.select()" class="w-full text-center text-3xl font-bold text-emerald-600 ${inputBgClass} border border-emerald-200 rounded-xl py-3 outline-none shadow-sm" placeholder="0"></div>
+                                    <div class="flex-1 bg-rose-50/30 p-4 rounded-2xl border border-rose-100 transition-colors"><label class="text-xs font-bold text-rose-700 mb-2 flex items-center gap-1.5 uppercase tracking-wide"><div class="w-1.5 h-1.5 rounded-full bg-rose-500"></div> ไม่ผ่าน (Fail)</label><input id="qc-input-failed-${idx}" type="number" inputmode="numeric" value="${item.failed}" ${disabledAttr} oninput="app.logic.setQC('${order.id}', ${idx}, 'failed', this.value, false)" onchange="app.saveData()" onclick="this.select()" class="w-full text-center text-3xl font-bold text-rose-600 ${inputBgClass} border border-rose-200 rounded-xl py-3 outline-none shadow-sm" placeholder="0"></div>
                                 </div>
-                                `;
+                                <div id="qc-reason-container-${idx}" class="${item.failed > 0 ? '' : 'hidden'} animate-slide-up bg-rose-50 p-4 rounded-2xl border border-rose-100"><label class="text-[10px] font-bold text-rose-500 uppercase flex items-center gap-1"><i data-lucide="alert-circle" class="w-3 h-3"></i> สาเหตุที่สินค้าไม่ผ่าน</label><input type="text" placeholder="ระบุสาเหตุ" value="${item.qc_reason}" ${disabledAttr} oninput="app.logic.updateQCReason('${order.id}', ${idx}, this.value)" class="w-full ${inputBgClass} border border-rose-200 text-rose-800 text-sm rounded-lg p-3 mt-2 outline-none shadow-sm"></div>
+                            </div>
+                            <div class="${isComplete ? '' : 'hidden'} w-full py-2 bg-emerald-100 text-emerald-700 border-t border-emerald-200 text-xs font-bold text-center flex items-center justify-center gap-1.5 cursor-default"><i data-lucide="check-check" class="w-4 h-4"></i> ตรวจครบจำนวนแล้ว</div>
+                        </div>`; }).join('')}</div>`;
+                },
+
+                renderPackContent(order, canEdit) {
+                    return `
+                        <div class="space-y-3">
+                            <div class="text-xs text-slate-400 mb-2 ml-1">รายการสินค้าที่ต้องแพ็ค (แตะเพื่อติ๊กรายการ)</div>
+                            ${order.items.map((item, idx) => {
+                                const isPacked = item.packed || false;
+                                const bgClass = isPacked ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-100';
+                                const textClass = isPacked ? 'text-blue-700' : 'text-slate-700';
+                                const icon = isPacked ? '<div class="bg-blue-500 text-white rounded-full p-1"><i data-lucide="check" class="w-4 h-4"></i></div>' : '<div class="w-6 h-6 rounded-full border-2 border-slate-200"></div>';
+                                const onClick = canEdit ? `onclick="app.logic.togglePacked('${order.id}', ${idx})"` : '';
+                                const cursor = canEdit ? 'cursor-pointer' : '';
+                                return `
+                                <div ${onClick} class="${bgClass} p-4 rounded-3xl border flex justify-between items-center shadow-soft ${cursor} transition-all active:scale-[0.98]">
+                                    <div class="flex items-center gap-4">
+                                        ${icon}
+                                        <div><div class="font-bold ${textClass}">${item.name}</div><div class="text-xs text-slate-400 mt-0.5">จำนวน: ${item.qty} ${item.unit}</div></div>
+                                    </div>
+                                    <div class="text-xs font-bold bg-white px-3 py-1.5 rounded-lg border border-slate-100 shadow-sm text-slate-500">${item.qty}</div>
+                                </div>`;
                             }).join('')}
-                        </div>
-                    `;
+                        </div>`;
                 },
 
                 renderReadOnlyContent(order) {
-                    return `
-                        <div class="space-y-3">
-                            ${order.items.map(item => `
-                                <div class="bg-white p-5 rounded-3xl border border-slate-100 flex justify-between items-center shadow-soft">
-                                    <div>
-                                        <div class="font-bold text-slate-700">${item.name}</div>
-                                        <div class="text-xs text-slate-400 mt-1">ยอดสั่ง: ${item.qty} ${item.unit}</div>
-                                    </div>
-                                    <div class="bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
-                                        <span class="font-bold text-slate-700 text-lg">${item.qty}</span>
-                                    </div>
-                                </div>
-                            `).join('')}
-                            ${order.status === 'completed' ? `<div class="bg-emerald-50 text-emerald-600 p-6 rounded-3xl text-center font-bold border border-emerald-100 flex flex-col items-center gap-2 shadow-soft"><i data-lucide="check-circle" class="w-8 h-8"></i>ออเดอร์เสร็จสมบูรณ์</div>` : ''}
-                        </div>
-                    `;
-                }
-            },
+                    return `<div class="space-y-3">${order.items.map(item => `<div class="bg-white p-5 rounded-3xl border border-slate-100 flex justify-between items-center shadow-soft"><div><div class="font-bold text-slate-700">${item.name}</div><div class="text-xs text-slate-400 mt-1">ยอดสั่ง: ${item.qty} ${item.unit}</div></div><div class="bg-slate-50 px-4 py-2 rounded-xl border border-slate-100"><span class="font-bold text-slate-700 text-lg">${item.qty}</span></div></div>`).join('')}${order.status === 'completed' ? `<div class="bg-emerald-50 text-emerald-600 p-6 rounded-3xl text-center font-bold border border-emerald-100 flex flex-col items-center gap-2 shadow-soft"><i data-lucide="check-circle" class="w-8 h-8"></i>ออเดอร์เสร็จสมบูรณ์</div>` : ''}</div>`;
+                },
 
-            // --- BUSINESS LOGIC ---
-            logic: {
-                // Auto-Merge Logic
-                mergeReworkToParent(reworkOrder) {
-                    // Check if it's a Rework order
-                    if (!reworkOrder.docNo.includes('(Rework)')) return false;
-
-                    // Find Parent ID (assuming ID format like ORD-001-R...)
-                    const parentId = reworkOrder.id.split('-R')[0];
-                    const parentOrder = app.data.orders.find(o => o.id === parentId);
-
-                    // Check if Parent exists and is waiting to be packed (pending_pack)
-                    if (parentOrder && parentOrder.status === 'pending_pack') {
-                        // Merge items back to parent
-                        reworkOrder.items.forEach(rItem => {
-                            // Find corresponding item in parent
-                            const pItem = parentOrder.items.find(i => i.name === rItem.name);
-                            if (pItem) {
-                                pItem.qty += rItem.qty; // Add qty back
-                                // In a real app, you might merge 'picks' details too, but for QC qty, this is sufficient
-                            } else {
-                                // Fallback: add as new item if not found
-                                parentOrder.items.push({...rItem});
-                            }
-                        });
-
-                        // Add Log to Parent
-                        app.logic.log(parentOrder, `ได้รับสินค้าจากใบงานแก้ (${reworkOrder.id}) เพิ่มเข้ามา`);
-                        
-                        // Remove Rework Order
-                        app.data.orders = app.data.orders.filter(o => o.id !== reworkOrder.id);
-                        return true; // Merged successfully
-                    }
-                    return false; // Did not merge
+                generateSingleLabelHTML(customer, product, lot, currentBox, totalBox, qty) {
+                    return `<div style="flex: 1; display: flex; flex-direction: column; border: 3px solid #000; box-sizing: border-box; margin-bottom: 1mm; margin-top: 1mm;"><div style="background-color: #000; color: #fff; text-align: center; padding: 5px 0;"><h1 style="font-size: 18pt; font-weight: 900; margin: 0; line-height: 1; text-transform: uppercase;">${customer}</h1></div><div style="flex: 1; padding: 5px; text-align: center; display: flex; flex-direction: column; justify-content: center;"><h2 style="font-size: 14pt; font-weight: bold; margin: 0; line-height: 1.1;">${product}</h2><h3 style="font-size: 24pt; font-weight: 900; margin: 5px 0 0 0;">QTY: ${qty}</h3><p style="font-size: 8pt; font-weight: bold; color: #000; margin-top: 2px;">LOT: ${lot}</p></div><div style="display: flex; border-top: 3px solid #000;"><div style="flex: 1; border-right: 3px solid #000; padding: 5px; text-align: center; display: flex; align-items: center; justify-content: center;"><span style="font-size: 8pt; font-weight: bold;">BOX</span><span style="font-size: 20pt; font-weight: 900; margin-left: 5px;">${currentBox}/${totalBox}</span></div><div style="flex: 1; padding: 5px;"><div style="border-bottom: 1px solid #000; margin-top: 15px;"></div><div style="font-size: 6pt; text-align: center;">PACKED BY</div><div style="border-bottom: 1px solid #000; margin-top: 8px;"></div><div style="font-size: 6pt; text-align: center;">QC CHECK</div></div></div></div>`;
                 },
                 
-                deleteOrder(id) {
-                    const orderIdx = app.data.orders.findIndex(o => o.id === id);
-                    if (orderIdx === -1) return;
-                    
-                    app.ui.modal('ยืนยันการลบ', 'คุณต้องการลบออเดอร์นี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้', () => {
-                        app.data.orders.splice(orderIdx, 1);
-                        app.saveData();
-                        app.router('history'); 
-                        app.updateBadges();
-                        app.ui.toast('ลบออเดอร์เรียบร้อยแล้ว');
-                    });
-                },
-
-                // Create Order
-                addInputRow() { 
-                    const list = document.getElementById('new-items-list');
-                    if(!list) return;
-                    const div = document.createElement('div');
-                    div.className = 'flex gap-3 item-row animate-slide-up items-center';
-                    div.innerHTML = `
-                        <div class="flex-1">
-                            <input type="text" placeholder="ชื่อสินค้า" class="input-field w-full text-sm">
-                        </div>
-                        <div class="w-20">
-                            <input type="number" inputmode="numeric" placeholder="จน." class="input-field w-full text-center text-sm item-qty">
-                        </div>
-                        <div class="w-20">
-                            <input type="text" placeholder="หน่วย" value="ชิ้น" class="input-field w-full text-center text-sm item-unit">
-                        </div>
-                        <button onclick="this.parentElement.remove()" class="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
-                    `;
-                    list.appendChild(div);
-                    lucide.createIcons();
-                },
-                submitNewOrder() { 
-                    const docNo = document.getElementById('new-doc').value || '-';
-                    const customer = document.getElementById('new-customer').value;
-                    const dateInput = document.getElementById('new-date').value;
-                    const items = [];
-                    
-                    document.querySelectorAll('.item-row').forEach(row => {
-                        const name = row.querySelector('input[type="text"]').value;
-                        const qty = row.querySelector('.item-qty').value;
-                        const unit = row.querySelector('.item-unit').value;
-                        if(name && qty) items.push({ name, qty: parseInt(qty), unit: unit || 'ชิ้น', picked: 0, lot: '', passed: 0, failed: 0, picks: [], qc_reason: '' });
-                    });
-
-                    if(!customer || items.length === 0) { app.ui.toast('กรุณากรอกข้อมูลให้ครบ', 'error'); return; }
-
-                    let dateStr = '';
-                    if (dateInput) { const d = new Date(dateInput); dateStr = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }); } 
-                    else { const now = new Date(); dateStr = now.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }) + ' ' + now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'; }
-                    
-                    const newOrder = { 
-                        id: `ORD-${Date.now().toString().slice(-4)}`, 
-                        docNo: docNo, 
-                        customer, 
-                        date: dateStr, 
-                        status: 'pending_stock', 
-                        items,
-                        logs: [{ action: 'สร้างออเดอร์', time: new Date().toLocaleString('th-TH'), user: 'คุณ (Admin)' }] 
-                    };
-                    app.data.orders.unshift(newOrder);
-                    app.saveData();
-                    app.router('stock');
-                    app.ui.toast('สร้างออเดอร์สำเร็จ');
-                },
-
-                // Stock Logic
-                addPick(id, itemIdx) {
-                    const order = app.data.orders.find(o => o.id === id);
-                    order.items[itemIdx].picks.push({ lot: '', qty: '' }); // Empty for manual input
-                    app.saveData();
-                    app.router('detail', id);
-                },
-                removePick(id, itemIdx, pickIdx) {
-                    const order = app.data.orders.find(o => o.id === id);
-                    order.items[itemIdx].picks.splice(pickIdx, 1);
-                    app.saveData();
-                    app.router('detail', id);
-                },
-                updatePick(id, itemIdx, pickIdx, field, val, shouldSave = true) {
-                    const order = app.data.orders.find(o => o.id === id);
-                    if (field === 'qty') val = parseInt(val) || 0;
-                    order.items[itemIdx].picks[pickIdx][field] = val;
-                    const totalPicked = order.items[itemIdx].picks.reduce((a,b)=>a + (parseInt(b.qty)||0), 0);
-                    order.items[itemIdx].picked = totalPicked;
-                    
-                    if (shouldSave) app.saveData();
-                    
-                    const totalEl = document.getElementById(`stock-total-${itemIdx}`);
-                    if(totalEl) {
-                        totalEl.innerText = totalPicked;
-                        const qty = order.items[itemIdx].qty;
-                        totalEl.className = `font-black text-xl ${totalPicked > qty ? 'text-red-500' : (totalPicked < qty ? 'text-orange-500' : 'text-emerald-500')}`;
-                    }
-                },
-                validateStock(id) {
-                    const order = app.data.orders.find(o => o.id === id);
-                    const shortages = order.items.filter(i => i.picked < i.qty);
-                    const proceed = () => this.moveStatus(id, 'pending_qc', 'เบิกสินค้าเสร็จสิ้น');
-                    if (shortages.length > 0) {
-                        app.ui.modal('จำนวนไม่ครบ', `สินค้าบางรายการไม่ครบตามจำนวน (${shortages.length} รายการ) ต้องการส่ง QC ต่อหรือไม่?`, proceed);
-                    } else proceed();
-                },
-
-                // QC Logic
-                setQC(id, itemIdx, field, val, shouldSave = true) {
-                    const order = app.data.orders.find(o => o.id === id);
-                    const item = order.items[itemIdx];
-                    let newVal = parseInt(val);
-                    if (isNaN(newVal)) newVal = 0;
-                    if (newVal < 0) newVal = 0;
-                    if (newVal > item.qty) newVal = item.qty;
-
-                    // Auto-balance logic
-                    const otherField = field === 'passed' ? 'failed' : 'passed';
-                    if (newVal + item[otherField] > item.qty) {
-                        item[otherField] = item.qty - newVal;
-                        // Update DOM for the other field
-                        const otherInput = document.getElementById(`qc-input-${otherField}-${itemIdx}`);
-                        if(otherInput) otherInput.value = item[otherField];
-                    }
-
-                    item[field] = newVal;
-                    
-                    if (shouldSave) app.saveData();
-                    
-                    // DOM Updates for Card Status
-                    const isComplete = (item.passed + item.failed) === item.qty;
-                    const card = document.getElementById(`qc-card-${itemIdx}`);
-                    const reasonContainer = document.getElementById(`qc-reason-container-${itemIdx}`);
-                    
-                    // Toggle Reason Input Visibility
-                    if(reasonContainer) {
-                        if(item.failed > 0) reasonContainer.classList.remove('hidden');
-                        else reasonContainer.classList.add('hidden');
-                    }
-                    
-                    if(card) {
-                        if(isComplete) {
-                            card.classList.remove('border-slate-200');
-                            card.classList.add('border-emerald-500', 'ring-1', 'ring-emerald-100');
-                            
-                            // Show Status Bar
-                            const statusBar = card.querySelector('.bg-emerald-100');
-                            if(statusBar) statusBar.classList.remove('hidden');
-                        } else {
-                            card.classList.add('border-slate-200');
-                            card.classList.remove('border-emerald-500', 'ring-1', 'ring-emerald-100');
-                            
-                            // Hide Status Bar
-                            const statusBar = card.querySelector('.bg-emerald-100');
-                            if(statusBar) statusBar.classList.add('hidden');
-                        }
-                    }
-                },
-                updateQCReason(id, itemIdx, val) {
-                    const order = app.data.orders.find(o => o.id === id);
-                    order.items[itemIdx].qc_reason = val;
-                    app.saveData();
-                },
-                submitQC(id) {
-                    const order = app.data.orders.find(o => o.id === id);
-                    const incomplete = order.items.some(i => (i.passed + i.failed) !== i.qty);
-                    const missingReason = order.items.some(i => i.failed > 0 && !i.qc_reason.trim());
-                    if (incomplete) return app.ui.toast('ข้อผิดพลาด: ตรวจสอบจำนวนไม่ครบถ้วน', 'error');
-                    if (missingReason) return app.ui.toast('ข้อผิดพลาด: กรุณาระบุสาเหตุสำหรับสินค้าที่ไม่ผ่าน', 'error');
-
-                    const hasFailures = order.items.some(i => i.failed > 0);
-                    const allFail = order.items.every(i => i.passed === 0);
-
-                    if (allFail) {
-                        order.items.forEach(i => { i.picked = 0; i.picks = []; i.passed=0; i.failed=0; });
-                        order.status = 'pending_stock';
-                        this.log(order, 'QC ปฏิเสธทั้งหมด - ตีกลับสต็อก');
-                        app.saveData();
-                        app.router('dashboard');
-                        app.ui.toast('ปฏิเสธสินค้าทั้งหมด', 'error');
-                    } else if (hasFailures) {
-                        app.ui.modal('ผลการตรวจสอบ: ไม่ผ่านบางส่วน', 'มีสินค้าบางรายการไม่ผ่าน QC ระบบจะสร้างออเดอร์งานแก้ (Rework) ใหม่โดยอัตโนมัติ', () => {
-                            const reworkOrder = JSON.parse(JSON.stringify(order));
-                            reworkOrder.id = order.id + '-R' + Math.floor(Math.random() * 100);
-                            reworkOrder.docNo = order.docNo + ' (Rework)';
-                            reworkOrder.status = 'pending_stock';
-                            reworkOrder.items = order.items.filter(i => i.failed > 0).map(i => ({ ...i, qty: i.failed, picked: 0, picks: [], passed: 0, failed: 0, qc_reason: '' }));
-                            reworkOrder.logs = [{ action: 'สร้างออเดอร์', time: new Date().toLocaleString('th-TH'), user: 'ระบบ', detail: `แยกมาจาก ${order.id}` }];
-                            app.data.orders.unshift(reworkOrder);
-                            order.items = order.items.map(i => ({ ...i, qty: i.passed, passed: 0, failed: 0 })); 
-                            order.status = 'pending_pack';
-                            this.log(order, 'ผ่าน QC (บางส่วน) - สร้างออเดอร์แยก');
-                            app.saveData();
-                            app.router('dashboard');
-                            app.ui.toast('แยกออเดอร์สำเร็จ');
-                        });
-                        return;
-                    } else {
-                        // All Pass - Try to merge back if it's a rework
-                        const merged = app.logic.mergeReworkToParent(order);
-                        if (merged) {
-                            app.saveData();
-                            app.router('dashboard');
-                            app.ui.toast('รวมบิลกลับเข้าออเดอร์หลักเรียบร้อย');
-                        } else {
-                            order.status = 'pending_pack';
-                            this.log(order, 'ผ่าน QC ทั้งหมด');
-                            app.saveData();
-                            app.router('dashboard');
-                            app.ui.toast('ผ่าน QC เรียบร้อย');
-                        }
-                    }
-                },
-                
-                // Helper to toggle all checkboxes
-                toggleAllPrintItems(id) {
-                    const checkboxes = document.querySelectorAll('.item-print-checkbox');
-                    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-                    checkboxes.forEach(cb => cb.checked = !allChecked);
-                    this.updatePrintPreview(id);
-                },
-
-                // Print Label Logic
                 printLabel(id) {
                     const order = app.data.orders.find(o => o.id === id);
                     if (!order) return;
 
-                    // Generate Item Checklist with improved UI
                     const itemsHtml = order.items.map((item, idx) => `
                         <label class="group relative flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-2xl shadow-sm cursor-pointer hover:border-brand-400 hover:shadow-md transition-all duration-200 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50 has-[:checked]:shadow-brand-100">
                             <div class="relative flex items-center justify-center">
@@ -1425,7 +744,6 @@
                     
                     const html = `
                         <div class="space-y-6">
-                            <!-- Step 1: Select Items -->
                             <div class="animate-fade-in">
                                 <div class="flex justify-between items-end mb-3 px-1">
                                     <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">1. เลือกสินค้าที่จะพิมพ์</label>
@@ -1436,7 +754,6 @@
                                 </div>
                             </div>
 
-                            <!-- Step 2: Settings -->
                             <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3 animate-slide-up" style="animation-delay: 0.1s;">
                                 <div>
                                     <label class="text-xs font-bold text-slate-500 block mb-1.5 ml-1">เลือกเครื่องพิมพ์</label>
@@ -1468,7 +785,6 @@
                                 </div>
                             </div>
 
-                            <!-- Step 3: Preview -->
                             <div class="animate-slide-up" style="animation-delay: 0.2s;">
                                 <label class="text-xs font-bold text-slate-400 block mb-2 text-center uppercase tracking-widest">ตัวอย่าง Label (ใบที่ 1)</label>
                                 <div class="border-4 border-slate-800 p-4 bg-white shadow-lg relative overflow-hidden rounded-sm mx-auto max-w-[280px]">
@@ -1480,7 +796,6 @@
                                     <div class="text-center mb-4 min-h-[40px] flex flex-col justify-center">
                                         <h2 id="preview-product-name" class="text-base font-bold text-slate-800 leading-tight line-clamp-2">กำลังโหลด...</h2>
                                          <p class="text-[8px] text-slate-500 font-bold tracking-widest mt-1">PRODUCT NAME</p>
-                                        <!-- QTY Display in Preview -->
                                         <h3 class="text-2xl font-black text-slate-900 mt-1">QTY: <span id="preview-qty">0</span></h3>
                                     </div>
 
@@ -1511,21 +826,21 @@
                     `;
 
                     app.ui.modalHTML('พิมพ์ใบปะหน้า', html, () => {
-                        const printer = document.getElementById('print-printer').value;
-                        const boxCount = parseInt(document.getElementById('print-box-count').innerText) || 1;
-                        const productName = document.getElementById('preview-product-name').innerText;
-                        const lotNo = document.getElementById('preview-lot').innerText;
-                        
-                        // Get qty per box for calculation logic
-                        const totalQty = parseInt(document.getElementById('print-total-qty').value) || 0;
-                        const qtyPerBox = parseInt(document.getElementById('print-qty-per-box').value) || 1;
-                        
-                        const totalBoxes = boxCount; 
-                        const printContent = [];
-                        
-                        for (let i = 1; i <= totalBoxes; i+=2) {
+                         // Print Logic is duplicated here because modal callback runs in different context or just for simplicity.
+                         // But for cleaner code, we use the logic already in app.logic.updatePrintPreview mostly.
+                         // However, the actual window.print() needs to happen after generating the print HTML.
+                         
+                         const boxCount = parseInt(document.getElementById('print-box-count').innerText) || 1;
+                         const productName = document.getElementById('preview-product-name').innerText;
+                         const lotNo = document.getElementById('preview-lot').innerText;
+                         const totalQty = parseInt(document.getElementById('print-total-qty').value) || 0;
+                         const qtyPerBox = parseInt(document.getElementById('print-qty-per-box').value) || 1;
+                         
+                         const totalBoxes = boxCount; 
+                         const printContent = [];
+                         
+                         for (let i = 1; i <= totalBoxes; i+=2) {
                             const box1 = i;
-                            // Calculate Qty for Box 1
                             let qty1 = qtyPerBox;
                             if (box1 === totalBoxes) {
                                  const remainder = totalQty % qtyPerBox;
@@ -1544,9 +859,7 @@
 
                             printContent.push(`
                                 <div class="print-page-break" style="width: 100mm; height: 149mm; padding: 2mm; box-sizing: border-box; display: flex; flex-direction: column;">
-                                    
                                     ${this.generateSingleLabelHTML(order.customer, productName, lotNo, box1, totalBoxes, qty1)}
-
                                     ${box2 ? `
                                     <div style="border-top: 2px dashed #999; margin: 1mm 0; width: 100%;"></div>
                                     ${this.generateSingleLabelHTML(order.customer, productName, lotNo, box2, totalBoxes, qty2)}
@@ -1561,129 +874,17 @@
                         printableArea.innerHTML = printContent.join('');
 
                         setTimeout(() => window.print(), 300);
-
                     }, 'สั่งพิมพ์');
                     
-                    // Initial update with icons
+                    // Initial update
                     setTimeout(() => {
                         app.logic.updatePrintPreview(id);
                         lucide.createIcons();
                     }, 100);
-                },
-
-                generateSingleLabelHTML(customer, product, lot, currentBox, totalBox, qty) {
-                    return `
-                        <div style="flex: 1; display: flex; flex-direction: column; border: 3px solid #000; box-sizing: border-box; margin-bottom: 1mm; margin-top: 1mm;">
-                            <div style="background-color: #000; color: #fff; text-align: center; padding: 5px 0;">
-                                <h1 style="font-size: 18pt; font-weight: 900; margin: 0; line-height: 1; text-transform: uppercase;">${customer}</h1>
-                            </div>
-                            
-                            <div style="flex: 1; padding: 5px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
-                                <h2 style="font-size: 14pt; font-weight: bold; margin: 0; line-height: 1.1;">${product}</h2>
-                                <h3 style="font-size: 24pt; font-weight: 900; margin: 5px 0 0 0;">QTY: ${qty}</h3>
-                                <p style="font-size: 8pt; font-weight: bold; color: #000; margin-top: 2px;">LOT: ${lot}</p>
-                            </div>
-
-                            <div style="display: flex; border-top: 3px solid #000;">
-                                <div style="flex: 1; border-right: 3px solid #000; padding: 5px; text-align: center; display: flex; align-items: center; justify-content: center;">
-                                    <span style="font-size: 8pt; font-weight: bold;">BOX</span>
-                                    <span style="font-size: 20pt; font-weight: 900; margin-left: 5px;">${currentBox}/${totalBox}</span>
-                                </div>
-                                <div style="flex: 1; padding: 5px;">
-                                    <div style="border-bottom: 1px solid #000; margin-top: 15px;"></div>
-                                    <div style="font-size: 6pt; text-align: center;">PACKED BY</div>
-                                    <div style="border-bottom: 1px solid #000; margin-top: 8px;"></div>
-                                    <div style="font-size: 6pt; text-align: center;">QC CHECK</div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                },
-
-                updatePrintPreview(orderId) {
-                    const order = app.data.orders.find(o => o.id === orderId);
-                    if (!order) return;
-
-                    const checkedBoxes = document.querySelectorAll('.item-print-checkbox:checked');
-                    let selectedItems = [];
-                    let totalQty = 0;
-                    let lotNumbers = new Set();
-
-                    checkedBoxes.forEach(cb => {
-                        const idx = parseInt(cb.value);
-                        const item = order.items[idx];
-                        selectedItems.push(item);
-                        totalQty += item.qty;
-                        item.picks.forEach(p => { if(p.lot) lotNumbers.add(p.lot); });
-                    });
-
-                    // Update State
-                    app.tempPrintState.selectedItems = selectedItems;
-                    app.tempPrintState.totalQty = totalQty;
-
-                    // Update UI inputs
-                    const totalQtyEl = document.getElementById('print-total-qty');
-                    const qtyPerBoxEl = document.getElementById('print-qty-per-box');
-                    
-                    if (totalQtyEl) totalQtyEl.value = totalQty;
-                    // Default qty per box = total of selected
-                    if (qtyPerBoxEl && selectedItems.length > 0) qtyPerBoxEl.value = totalQty;
-
-                    // Update Preview Text
-                    const nameEl = document.getElementById('preview-product-name');
-                    const lotEl = document.getElementById('preview-lot');
-                    const qtyEl = document.getElementById('preview-qty'); // New QTY preview element
-
-                    if (nameEl) {
-                        if (selectedItems.length === 0) nameEl.innerText = "- ไม่ได้เลือกสินค้า -";
-                        else if (selectedItems.length === 1) nameEl.innerText = selectedItems[0].name;
-                        else nameEl.innerText = "สินค้าคละรายการ";
-                    }
-
-                    if (qtyEl) {
-                         qtyEl.innerText = totalQty; // Shows total qty in first box preview for now
-                    }
-
-                    if (lotEl) {
-                        const lotsArr = Array.from(lotNumbers);
-                        if (lotsArr.length === 0) lotEl.innerText = "-";
-                        else if (lotsArr.length === 1) lotEl.innerText = lotsArr[0];
-                        else lotEl.innerText = "Mixed";
-                    }
-
-                    app.logic.calcPrintBoxes();
-                },
-
-                calcPrintBoxes() {
-                   const total = parseInt(document.getElementById('print-total-qty').value) || 0;
-                   const perBox = parseInt(document.getElementById('print-qty-per-box').value) || 1;
-                   const boxes = Math.ceil(total / (perBox > 0 ? perBox : 1));
-                   
-                   const boxCountEl = document.getElementById('print-box-count');
-                   const previewTotalBoxEl = document.getElementById('preview-total-box');
-                   const previewQtyEl = document.getElementById('preview-qty');
-                   
-                   if (boxCountEl) boxCountEl.innerText = boxes;
-                   if (previewTotalBoxEl) previewTotalBoxEl.innerText = boxes;
-                   
-                   // Update preview qty to show per box qty
-                   if (previewQtyEl) previewQtyEl.innerText = (perBox > total) ? total : perBox;
-                },
-
-                moveStatus(id, newStatus, logMsg) {
-                    const order = app.data.orders.find(o => o.id === id);
-                    order.status = newStatus;
-                    this.log(order, logMsg);
-                    app.saveData();
-                    app.router('dashboard');
-                    app.ui.toast(`อัปเดตสถานะเป็น ${newStatus.replace('_', ' ')}`);
-                },
-                log(order, action) {
-                    order.logs.push({ action: action, time: new Date().toLocaleString('th-TH'), user: 'Admin' });
                 }
             },
-
-            // --- UI HELPERS ---
+            
+            // --- LOGIC ---
             ui: {
                 toast(msg, type = 'success') {
                     const container = document.getElementById('toast-container');
@@ -1695,64 +896,77 @@
                     setTimeout(() => el.remove(), 3000);
                 },
                 modalHTML(title, html, onConfirm, btnText='ยืนยัน') {
-                    const overlay = document.getElementById('modal-overlay');
-                    const content = document.getElementById('modal-content');
-                    
-                    // Reset container classes to ensure correct flex layout
-                    content.className = "bg-white w-full max-w-md rounded-3xl shadow-2xl transform scale-95 transition-transform duration-200 overflow-hidden flex flex-col max-h-[85vh]";
-
-                    content.innerHTML = `
-                        <!-- Fixed Header -->
-                        <div class="px-6 pt-6 pb-2 flex-shrink-0 z-10 bg-white">
-                            <h3 class="text-xl font-bold text-slate-800">${title}</h3>
-                        </div>
-                        
-                        <!-- Scrollable Body -->
-                        <div class="px-6 py-2 overflow-y-auto flex-1 min-h-0 overscroll-contain">
-                            ${html}
-                            <div class="h-4"></div> <!-- Extra spacing at bottom -->
-                        </div>
-
-                        <!-- Fixed Footer -->
-                        <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 flex-shrink-0 bg-slate-50 z-10">
-                            <button id="modal-cancel" class="h-10 px-6 text-sm text-slate-500 font-bold hover:bg-slate-200 rounded-xl transition-colors">ยกเลิก</button>
-                            <button id="modal-confirm" class="h-10 px-6 btn-blue text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-200 hover:shadow-blue-300 transition-all active:scale-95">${btnText}</button>
-                        </div>`;
-                    
-                    overlay.classList.remove('hidden');
-                    requestAnimationFrame(() => { overlay.classList.remove('opacity-0'); content.classList.remove('scale-95'); content.classList.add('scale-100'); });
-                    
-                    const close = () => { 
-                        overlay.classList.add('opacity-0'); 
-                        content.classList.add('scale-95'); 
-                        setTimeout(() => overlay.classList.add('hidden'), 300); 
-                    };
-                    
-                    document.getElementById('modal-cancel').onclick = close;
-                    document.getElementById('modal-confirm').onclick = () => { 
-                        onConfirm(); 
-                        close(); 
-                    };
+                    app.views.modalHTML(title, html, onConfirm, btnText); 
                 },
                 modal(title, body, onConfirm) {
                     this.modalHTML(title, `<p class="text-slate-600 mb-2">${body}</p>`, onConfirm);
-                },
-                closeModal() {
-                    const overlay = document.getElementById('modal-overlay');
-                    const content = document.getElementById('modal-content');
-                    overlay.classList.add('opacity-0'); content.classList.add('scale-95'); setTimeout(() => overlay.classList.add('hidden'), 300);
                 },
                 badge(status) {
                     const map = { 'pending_stock': { col: 'bg-orange-100 text-orange-600', txt: 'รอเบิก' }, 'pending_qc': { col: 'bg-rose-100 text-rose-600', txt: 'รอตรวจ QC' }, 'pending_pack': { col: 'bg-blue-100 text-blue-600', txt: 'รอแพ็ค' }, 'ready_ship': { col: 'bg-purple-100 text-purple-600', txt: 'รอส่ง' }, 'completed': { col: 'bg-emerald-100 text-emerald-600', txt: 'เสร็จสิ้น' } };
                     const s = map[status] || { col: 'bg-slate-100', txt: status };
                     return `<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${s.col}">${s.txt}</span>`;
                 }
+            },
+
+            logic: {
+                togglePacked(id, itemIdx) {
+                    const isPack = app.currentUser.role === 'pack';
+                    const isManager = app.currentUser.role === 'manager';
+                    if (!isPack && !isManager) return;
+                    const order = app.data.orders.find(o => o.id === id);
+                    if (!order) return;
+                    if (order.items[itemIdx].packed === undefined) order.items[itemIdx].packed = false;
+                    order.items[itemIdx].packed = !order.items[itemIdx].packed;
+                    app.saveData();
+                },
+                
+                mergeReworkToParent(reworkOrder) { if (!reworkOrder.docNo.includes('(Rework)')) return false; const parentId = reworkOrder.id.split('-R')[0]; const parentOrder = app.data.orders.find(o => o.id === parentId); if (parentOrder && parentOrder.status === 'pending_pack') { reworkOrder.items.forEach(rItem => { const pItem = parentOrder.items.find(i => i.name === rItem.name); if (pItem) { pItem.qty += rItem.qty; } else { parentOrder.items.push({...rItem}); } }); app.logic.log(parentOrder, `ได้รับสินค้าจากใบงานแก้ (${reworkOrder.id}) เพิ่มเข้ามา`); app.data.orders = app.data.orders.filter(o => o.id !== reworkOrder.id); return true; } return false; },
+                deleteOrder(id) { const orderIdx = app.data.orders.findIndex(o => o.id === id); if (orderIdx === -1) return; app.ui.modal('ยืนยันการลบ', 'คุณต้องการลบออเดอร์นี้ใช่หรือไม่?', () => { app.data.orders.splice(orderIdx, 1); app.saveData(); app.router('history'); app.updateBadges(); app.ui.toast('ลบออเดอร์เรียบร้อยแล้ว'); }); },
+                addInputRow() { const list = document.getElementById('new-items-list'); if(!list) return; const div = document.createElement('div'); div.className = 'flex gap-3 item-row animate-slide-up items-center'; div.innerHTML = `<div class="flex-1"><input type="text" placeholder="ชื่อสินค้า" class="input-field w-full text-sm"></div><div class="w-20"><input type="number" inputmode="numeric" placeholder="จน." class="input-field w-full text-center text-sm item-qty"></div><div class="w-20"><input type="text" placeholder="หน่วย" value="ชิ้น" class="input-field w-full text-center text-sm item-unit"></div><button onclick="this.parentElement.remove()" class="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"><i data-lucide="trash-2" class="w-5 h-5"></i></button>`; list.appendChild(div); lucide.createIcons(); },
+                submitNewOrder() { const docNo = document.getElementById('new-doc').value || '-'; const customer = document.getElementById('new-customer').value; const dateInput = document.getElementById('new-date').value; const items = []; document.querySelectorAll('.item-row').forEach(row => { const name = row.querySelector('input[type="text"]').value; const qty = row.querySelector('.item-qty').value; const unit = row.querySelector('.item-unit').value; if(name && qty) items.push({ name, qty: parseInt(qty), unit: unit || 'ชิ้น', picked: 0, lot: '', passed: 0, failed: 0, picks: [], qc_reason: '' }); }); if(!customer || items.length === 0) { app.ui.toast('กรุณากรอกข้อมูลให้ครบ', 'error'); return; } let dateStr = ''; if (dateInput) { const d = new Date(dateInput); dateStr = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }); } else { const now = new Date(); dateStr = now.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }) + ' ' + now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.'; } const newOrder = { id: `ORD-${Date.now().toString().slice(-4)}`, docNo: docNo, customer, date: dateStr, status: 'pending_stock', items, logs: [{ action: 'สร้างออเดอร์', time: new Date().toLocaleString('th-TH'), user: 'คุณ (Admin)' }] }; app.data.orders.unshift(newOrder); app.saveData(); app.router('stock'); app.ui.toast('สร้างออเดอร์สำเร็จ'); },
+                addPick(id, itemIdx) { const order = app.data.orders.find(o => o.id === id); order.items[itemIdx].picks.push({ lot: '', qty: '' }); app.saveData(); app.router('detail', id); },
+                removePick(id, itemIdx, pickIdx) { const order = app.data.orders.find(o => o.id === id); order.items[itemIdx].picks.splice(pickIdx, 1); app.saveData(); app.router('detail', id); },
+                updatePick(id, itemIdx, pickIdx, field, val, shouldSave=true) { const order = app.data.orders.find(o => o.id === id); if (field === 'qty') val = parseInt(val) || 0; order.items[itemIdx].picks[pickIdx][field] = val; const totalPicked = order.items[itemIdx].picks.reduce((a,b)=>a + (parseInt(b.qty)||0), 0); order.items[itemIdx].picked = totalPicked; if(shouldSave) app.saveData(); const totalEl = document.getElementById(`stock-total-${itemIdx}`); if(totalEl) { totalEl.innerText = totalPicked; const qty = order.items[itemIdx].qty; totalEl.className = `font-black text-xl ${totalPicked > qty ? 'text-red-500' : (totalPicked < qty ? 'text-orange-500' : 'text-emerald-500')}`; } },
+                validateStock(id) { const order = app.data.orders.find(o => o.id === id); const shortages = order.items.filter(i => i.picked < i.qty); const proceed = () => this.moveStatus(id, 'pending_qc', 'เบิกสินค้าเสร็จสิ้น'); if (shortages.length > 0) { app.ui.modal('จำนวนไม่ครบ', `สินค้าบางรายการไม่ครบตามจำนวน (${shortages.length} รายการ) ต้องการส่ง QC ต่อหรือไม่?`, proceed); } else proceed(); },
+                setQC(id, itemIdx, field, val, shouldSave=true) { const order = app.data.orders.find(o => o.id === id); const item = order.items[itemIdx]; let newVal = parseInt(val); if (isNaN(newVal)) newVal = 0; if (newVal < 0) newVal = 0; if (newVal > item.qty) newVal = item.qty; const otherField = field === 'passed' ? 'failed' : 'passed'; if (newVal + item[otherField] > item.qty) { item[otherField] = item.qty - newVal; const otherInput = document.getElementById(`qc-input-${otherField}-${itemIdx}`); if(otherInput) otherInput.value = item[otherField]; } item[field] = newVal; if(shouldSave) app.saveData(); const isComplete = (item.passed + item.failed) === item.qty; const card = document.getElementById(`qc-card-${itemIdx}`); const reasonContainer = document.getElementById(`qc-reason-container-${itemIdx}`); if(reasonContainer) { if(item.failed > 0) reasonContainer.classList.remove('hidden'); else reasonContainer.classList.add('hidden'); } if(card) { if(isComplete) { card.classList.remove('border-slate-200'); card.classList.add('border-emerald-500', 'ring-1', 'ring-emerald-100'); const statusBar = card.querySelector('.bg-emerald-100'); if(statusBar) statusBar.classList.remove('hidden'); } else { card.classList.add('border-slate-200'); card.classList.remove('border-emerald-500', 'ring-1', 'ring-emerald-100'); const statusBar = card.querySelector('.bg-emerald-100'); if(statusBar) statusBar.classList.add('hidden'); } } },
+                updateQCReason(id, itemIdx, val) { const order = app.data.orders.find(o => o.id === id); order.items[itemIdx].qc_reason = val; app.saveData(); },
+                submitQC(id) { const order = app.data.orders.find(o => o.id === id); const incomplete = order.items.some(i => (i.passed + i.failed) !== i.qty); const missingReason = order.items.some(i => i.failed > 0 && !i.qc_reason.trim()); if (incomplete) return app.ui.toast('ข้อผิดพลาด: ตรวจสอบจำนวนไม่ครบถ้วน', 'error'); if (missingReason) return app.ui.toast('ข้อผิดพลาด: กรุณาระบุสาเหตุสำหรับสินค้าที่ไม่ผ่าน', 'error'); const hasFailures = order.items.some(i => i.failed > 0); const allFail = order.items.every(i => i.passed === 0); if (allFail) { order.items.forEach(i => { i.picked = 0; i.picks = []; i.passed=0; i.failed=0; }); order.status = 'pending_stock'; this.log(order, 'QC ปฏิเสธทั้งหมด - ตีกลับสต็อก'); app.saveData(); app.router('dashboard'); app.ui.toast('ปฏิเสธสินค้าทั้งหมด', 'error'); } else if (hasFailures) { app.ui.modal('ผลการตรวจสอบ: ไม่ผ่านบางส่วน', 'มีสินค้าบางรายการไม่ผ่าน QC ระบบจะสร้างออเดอร์งานแก้ (Rework) ใหม่โดยอัตโนมัติ', () => { const reworkOrder = JSON.parse(JSON.stringify(order)); reworkOrder.id = order.id + '-R' + Math.floor(Math.random() * 100); reworkOrder.docNo = order.docNo + ' (Rework)'; reworkOrder.status = 'pending_stock'; reworkOrder.items = order.items.filter(i => i.failed > 0).map(i => ({ ...i, qty: i.failed, picked: 0, picks: [], passed: 0, failed: 0, qc_reason: '' })); reworkOrder.logs = [{ action: 'สร้างออเดอร์', time: new Date().toLocaleString('th-TH'), user: 'ระบบ', detail: `แยกมาจาก ${order.id}` }]; app.data.orders.unshift(reworkOrder); order.items = order.items.map(i => ({ ...i, qty: i.passed, passed: 0, failed: 0 })); order.status = 'pending_pack'; this.log(order, 'ผ่าน QC (บางส่วน) - สร้างออเดอร์แยก'); app.saveData(); app.router('dashboard'); app.ui.toast('แยกออเดอร์สำเร็จ'); }); return; } else { const merged = app.logic.mergeReworkToParent(order); if (merged) { app.saveData(); app.router('dashboard'); app.ui.toast('รวมบิลกลับเข้าออเดอร์หลักเรียบร้อย'); } else { order.status = 'pending_pack'; this.log(order, 'ผ่าน QC ทั้งหมด'); app.saveData(); app.router('dashboard'); app.ui.toast('ผ่าน QC เรียบร้อย'); } } },
+                moveStatus(id, newStatus, logMsg) { const order = app.data.orders.find(o => o.id === id); order.status = newStatus; this.log(order, logMsg); app.saveData(); app.router('dashboard'); app.ui.toast(`อัปเดตสถานะเป็น ${newStatus.replace('_', ' ')}`); },
+                log(order, action) { order.logs.push({ action: action, time: new Date().toLocaleString('th-TH'), user: 'Admin' }); },
+                
+                updatePrintPreview(orderId) {
+                    const order = app.data.orders.find(o => o.id === orderId);
+                    if (!order) return;
+                    const checkedBoxes = document.querySelectorAll('.item-print-checkbox:checked');
+                    let selectedItems = []; let totalQty = 0; let lotNumbers = new Set();
+                    checkedBoxes.forEach(cb => { const idx = parseInt(cb.value); const item = order.items[idx]; selectedItems.push(item); totalQty += item.qty; item.picks.forEach(p => { if(p.lot) lotNumbers.add(p.lot); }); });
+                    app.tempPrintState.selectedItems = selectedItems; app.tempPrintState.totalQty = totalQty;
+                    const totalQtyEl = document.getElementById('print-total-qty'); const qtyPerBoxEl = document.getElementById('print-qty-per-box');
+                    if (totalQtyEl) totalQtyEl.value = totalQty; if (qtyPerBoxEl && selectedItems.length > 0) qtyPerBoxEl.value = totalQty;
+                    const nameEl = document.getElementById('preview-product-name'); const lotEl = document.getElementById('preview-lot'); const qtyEl = document.getElementById('preview-qty');
+                    if (nameEl) { if (selectedItems.length === 0) nameEl.innerText = "- ไม่ได้เลือกสินค้า -"; else if (selectedItems.length === 1) nameEl.innerText = selectedItems[0].name; else nameEl.innerText = "สินค้าคละรายการ"; }
+                    if (qtyEl) qtyEl.innerText = totalQty;
+                    if (lotEl) { const lotsArr = Array.from(lotNumbers); if (lotsArr.length === 0) lotEl.innerText = "-"; else if (lotsArr.length === 1) lotEl.innerText = lotsArr[0]; else lotEl.innerText = "Mixed"; }
+                    app.logic.calcPrintBoxes();
+                },
+                calcPrintBoxes() {
+                   const total = parseInt(document.getElementById('print-total-qty').value) || 0; const perBox = parseInt(document.getElementById('print-qty-per-box').value) || 1;
+                   const boxes = Math.ceil(total / (perBox > 0 ? perBox : 1));
+                   const boxCountEl = document.getElementById('print-box-count'); const previewTotalBoxEl = document.getElementById('preview-total-box'); const previewQtyEl = document.getElementById('preview-qty');
+                   if (boxCountEl) boxCountEl.innerText = boxes; if (previewTotalBoxEl) previewTotalBoxEl.innerText = boxes;
+                   if (previewQtyEl) previewQtyEl.innerText = (perBox > total) ? total : perBox;
+                },
+                toggleAllPrintItems(id) {
+                    const checkboxes = document.querySelectorAll('.item-print-checkbox');
+                    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                    checkboxes.forEach(cb => cb.checked = !allChecked);
+                    this.updatePrintPreview(id);
+                },
+                printLabel(id) { app.views.printLabel(id); } // Delegate to view which has HTML logic
             }
         };
 
-        // Make app global
         window.app = app;
-
         document.addEventListener('DOMContentLoaded', () => app.init());
     </script>
 </body>
