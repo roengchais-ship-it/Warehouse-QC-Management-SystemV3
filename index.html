@@ -103,37 +103,15 @@
         .input-field:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
 
         /* -------------------------------------------
-           REAL PRINT STYLES (4x6 Inches / 100x150mm)
+           REAL PRINT STYLES
            ------------------------------------------- */
         @media print {
             body > * { display: none !important; }
-            #printable-area {
-                display: block !important;
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                margin: 0;
-                padding: 0;
-                background-color: white;
-            }
+            #printable-area { display: block !important; position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 0; background-color: white; }
             #printable-area * { visibility: visible; }
-            * {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            @page {
-                size: 100mm 150mm;
-                margin: 0;
-            }
-            .print-page-break { 
-                page-break-after: always;
-                page-break-inside: avoid;
-                width: 100mm;
-                height: 149mm;
-                overflow: hidden;
-            }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            @page { size: 100mm 150mm; margin: 0; }
+            .print-page-break { page-break-after: always; page-break-inside: avoid; width: 100mm; height: 149mm; overflow: hidden; }
         }
     </style>
 </head>
@@ -323,7 +301,6 @@
             currentUser: null,
 
             async init() {
-                // Setup Login Enter Key
                 document.getElementById('login-username').addEventListener('keyup', (e) => {
                     if (e.key === 'Enter') document.getElementById('login-password').focus();
                 });
@@ -361,7 +338,6 @@
                                 const newData = snapshot.data();
                                 if (newData) {
                                     this.data = newData;
-                                    // Merge default users
                                     const defaultUsers = {
                                         'admin': { pass: '1234', role: 'admin', name: 'ผู้ดูแลระบบ' },
                                         'manager': { pass: '1234', role: 'manager', name: 'หัวหน้าสมชาย' },
@@ -452,8 +428,8 @@
                 }).join('');
                 
                 const fab = document.getElementById('fab-create');
-                // Manager OR (Pack team who is allowed 'create')
-                const canCreate = (this.currentUser.role === 'manager' || allowedPages.includes('create'));
+                // Permission: Create allowed if 'create' is in ROLES.allowed
+                const canCreate = (allowedPages.includes('create'));
                 
                 if (fab) {
                     if (canCreate) {
@@ -571,8 +547,13 @@
                     if(fab) fab.classList.add('hidden');
                 } else {
                     mobileNav.classList.remove('translate-y-full');
-                    if(fab && (this.currentUser.role === 'manager')) fab.classList.remove('hidden');
-                    else if(fab) fab.classList.add('hidden');
+                    // Permission Check for FAB: Use ROLES config
+                    const canCreate = (ROLES[this.currentUser.role]?.allowed.includes('create'));
+                    if(fab && canCreate) { 
+                         fab.classList.remove('hidden');
+                    } else if(fab) {
+                         fab.classList.add('hidden');
+                    }
                 }
 
                 document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(el => {
@@ -616,7 +597,7 @@
                     const renderList = () => {
                         const search = document.getElementById('history-search').value.toLowerCase();
                         const status = document.getElementById('history-filter-status').value;
-                        const filtered = app.data.orders.filter(o => { return (o.docNo.toLowerCase().includes(search) || o.customer.toLowerCase().includes(search)) && (status === 'all' || o.status === status); });
+                        const filtered = app.data.orders.filter(o => { return ((o.docNo || '').toLowerCase().includes(search) || (o.customer || '').toLowerCase().includes(search)) && (status === 'all' || o.status === status); });
                         const listHtml = filtered.length === 0 ? `<div class="text-center py-10 text-slate-400">ไม่พบข้อมูล</div>` : filtered.map(o => `<div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:shadow-md transition-all"><div class="flex items-start gap-4 flex-1 cursor-pointer" onclick="app.router('detail', '${o.id}')"><div class="p-3 bg-slate-50 rounded-xl text-slate-400"><i data-lucide="file-clock" class="w-6 h-6"></i></div><div><div class="font-bold text-slate-800 text-lg">${o.docNo}</div><div class="text-sm text-slate-500">${o.customer}</div><div class="text-xs text-slate-400 mt-1 flex items-center gap-1"><i data-lucide="calendar" class="w-3 h-3"></i> ${o.date}</div></div></div><div class="flex items-center justify-between md:justify-end w-full md:w-auto gap-4 pt-4 md:pt-0 border-t md:border-t-0 border-slate-50"><div class="text-right cursor-pointer" onclick="app.router('detail', '${o.id}')"><div class="text-xs text-slate-400 mb-1">สถานะปัจจุบัน</div>${app.ui.badge(o.status)}</div><div class="flex items-center gap-3">${app.currentUser.role === 'manager' ? `<button onclick="event.stopPropagation(); app.logic.deleteOrder('${o.id}')" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"><i data-lucide="trash-2" class="w-5 h-5"></i></button>` : ''}<i data-lucide="chevron-right" class="w-5 h-5 text-slate-300 cursor-pointer" onclick="app.router('detail', '${o.id}')"></i></div></div></div>`).join('');
                         document.getElementById('history-list').innerHTML = listHtml; lucide.createIcons();
                     };
@@ -1053,7 +1034,13 @@
                     checkedBoxes.forEach(cb => { const idx = parseInt(cb.value); const item = order.items[idx]; selectedItems.push(item); totalQty += item.qty; item.picks.forEach(p => { if(p.lot) lotNumbers.add(p.lot); }); });
                     app.tempPrintState.selectedItems = selectedItems; app.tempPrintState.totalQty = totalQty;
                     const totalQtyEl = document.getElementById('print-total-qty'); const qtyPerBoxEl = document.getElementById('print-qty-per-box');
-                    if (totalQtyEl) totalQtyEl.value = totalQty; if (qtyPerBoxEl && selectedItems.length > 0) qtyPerBoxEl.value = totalQty;
+                    if (totalQtyEl) totalQtyEl.value = totalQty; 
+                    
+                    // FIX: Don't auto-reset qtyPerBox if it has a value, unless it's 0 or not set
+                    if (qtyPerBoxEl && (qtyPerBoxEl.value === '0' || qtyPerBoxEl.value === '' || !qtyPerBoxEl.dataset.userEdited)) {
+                         qtyPerBoxEl.value = totalQty;
+                    }
+
                     const nameEl = document.getElementById('preview-product-name'); const lotEl = document.getElementById('preview-lot'); const qtyEl = document.getElementById('preview-qty');
                     if (nameEl) { if (selectedItems.length === 0) nameEl.innerText = "- ไม่ได้เลือกสินค้า -"; else if (selectedItems.length === 1) nameEl.innerText = selectedItems[0].name; else nameEl.innerText = "สินค้าคละรายการ"; }
                     if (qtyEl) qtyEl.innerText = totalQty;
