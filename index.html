@@ -288,11 +288,11 @@
         
         // Role Definitions
         const ROLES = {
-            admin: { name: 'ผู้ดูแลระบบ (Viewer)', allowed: ['dashboard', 'stock', 'qc', 'pack', 'ship', 'history', 'detail'] }, // No create, view all
+            admin: { name: 'ผู้ดูแลระบบ (Viewer)', allowed: ['dashboard', 'stock', 'qc', 'pack', 'ship', 'history', 'detail'] }, 
             manager: { name: 'หัวหน้างาน', allowed: ['dashboard', 'stock', 'qc', 'pack', 'ship', 'history', 'create', 'detail'] },
             stock: { name: 'ทีม Stock', allowed: ['dashboard', 'stock', 'history', 'detail'] }, 
             qc: { name: 'ทีม QC', allowed: ['dashboard', 'qc', 'history', 'detail'] },
-            pack: { name: 'ทีม Pack', allowed: ['dashboard', 'pack', 'ship', 'history', 'create', 'detail'] } // Added 'create'
+            pack: { name: 'ทีม Pack', allowed: ['dashboard', 'pack', 'ship', 'history', 'create', 'detail'] } // Added 'create' for pack
         };
 
         const MENU_ITEMS = [
@@ -421,7 +421,6 @@
             renderNavigation() {
                 const userRole = this.currentUser.role;
                 const allowedPages = ROLES[userRole]?.allowed || [];
-                const isManager = (userRole === 'manager');
                 const isSuperUser = (userRole === 'manager' || userRole === 'admin');
 
                 const desktopNav = document.getElementById('desktop-nav');
@@ -746,7 +745,17 @@
                 },
 
                 renderReadOnlyContent(order) {
-                    return `<div class="space-y-3">${order.items.map(item => `<div class="bg-white p-5 rounded-3xl border border-slate-100 flex justify-between items-center shadow-soft"><div><div class="font-bold text-slate-700">${item.name}</div><div class="text-xs text-slate-400 mt-1">ยอดสั่ง: ${item.qty} ${item.unit}</div></div><div class="bg-slate-50 px-4 py-2 rounded-xl border border-slate-100"><span class="font-bold text-slate-700 text-lg">${item.qty}</span></div></div>`).join('')}${order.status === 'completed' ? `<div class="bg-emerald-50 text-emerald-600 p-6 rounded-3xl text-center font-bold border border-emerald-100 flex flex-col items-center gap-2 shadow-soft"><i data-lucide="check-circle" class="w-8 h-8"></i>ออเดอร์เสร็จสมบูรณ์</div>` : ''}</div>`;
+                    return `<div class="space-y-3">${order.items.map(item => `
+                        <div class="bg-white p-5 rounded-3xl border border-slate-100 flex justify-between items-center shadow-soft">
+                            <div>
+                                <div class="font-bold text-slate-700">${item.name}</div>
+                                <div class="text-xs text-slate-400 mt-1">
+                                    ${item.original_qty ? `<span class="text-rose-400 line-through mr-1">${item.original_qty}</span>` : ''}
+                                    ยอดสุทธิ: ${item.qty} ${item.unit}
+                                </div>
+                            </div>
+                            <div class="bg-slate-50 px-4 py-2 rounded-xl border border-slate-100"><span class="font-bold text-slate-700 text-lg">${item.qty}</span></div>
+                        </div>`).join('')}${order.status === 'completed' ? `<div class="bg-emerald-50 text-emerald-600 p-6 rounded-3xl text-center font-bold border border-emerald-100 flex flex-col items-center gap-2 shadow-soft"><i data-lucide="check-circle" class="w-8 h-8"></i>ออเดอร์เสร็จสมบูรณ์</div>` : ''}</div>`;
                 },
 
                 generateSingleLabelHTML(customer, product, lot, currentBox, totalBox, qty) {
@@ -955,7 +964,35 @@
                 addPick(id, itemIdx) { const order = app.data.orders.find(o => o.id === id); order.items[itemIdx].picks.push({ lot: '', qty: '' }); app.saveData(); app.router('detail', id); },
                 removePick(id, itemIdx, pickIdx) { const order = app.data.orders.find(o => o.id === id); order.items[itemIdx].picks.splice(pickIdx, 1); app.saveData(); app.router('detail', id); },
                 updatePick(id, itemIdx, pickIdx, field, val, shouldSave=true) { const order = app.data.orders.find(o => o.id === id); if (field === 'qty') val = parseInt(val) || 0; order.items[itemIdx].picks[pickIdx][field] = val; const totalPicked = order.items[itemIdx].picks.reduce((a,b)=>a + (parseInt(b.qty)||0), 0); order.items[itemIdx].picked = totalPicked; if(shouldSave) app.saveData(); const totalEl = document.getElementById(`stock-total-${itemIdx}`); if(totalEl) { totalEl.innerText = totalPicked; const qty = order.items[itemIdx].qty; totalEl.className = `font-black text-xl ${totalPicked > qty ? 'text-red-500' : (totalPicked < qty ? 'text-orange-500' : 'text-emerald-500')}`; } },
-                validateStock(id) { const order = app.data.orders.find(o => o.id === id); const shortages = order.items.filter(i => i.picked < i.qty); const proceed = () => this.moveStatus(id, 'pending_qc', 'เบิกสินค้าเสร็จสิ้น'); if (shortages.length > 0) { app.ui.modal('จำนวนไม่ครบ', `สินค้าบางรายการไม่ครบตามจำนวน (${shortages.length} รายการ) ต้องการส่ง QC ต่อหรือไม่?`, proceed); } else proceed(); },
+                
+                validateStock(id) {
+                    const order = app.data.orders.find(o => o.id === id);
+                    const shortages = order.items.filter(i => i.picked < i.qty);
+                    
+                    const proceed = () => {
+                         // Update items: actual qty becomes picked qty for subsequent steps
+                        let updated = false;
+                        order.items.forEach(item => {
+                            // Ensure picked is integer
+                            const picked = item.picked || 0;
+                            if (picked !== item.qty) {
+                                item.original_qty = item.qty; // Save original
+                                item.qty = picked; // Update active qty
+                                updated = true;
+                            }
+                        });
+                        
+                        const msg = updated ? 'เบิกสินค้าเสร็จสิ้น (ปรับยอดตามจริง)' : 'เบิกสินค้าเสร็จสิ้น';
+                        this.moveStatus(id, 'pending_qc', msg);
+                    };
+
+                    if (shortages.length > 0) {
+                        app.ui.modal('จำนวนไม่ครบ', `สินค้าบางรายการไม่ครบตามจำนวน (${shortages.length} รายการ) ระบบจะปรับยอดตามที่เบิกได้จริง ต้องการดำเนินการต่อหรือไม่?`, proceed);
+                    } else {
+                        proceed();
+                    }
+                },
+
                 setQC(id, itemIdx, field, val, shouldSave=true) { const order = app.data.orders.find(o => o.id === id); const item = order.items[itemIdx]; let newVal = parseInt(val); if (isNaN(newVal)) newVal = 0; if (newVal < 0) newVal = 0; if (newVal > item.qty) newVal = item.qty; const otherField = field === 'passed' ? 'failed' : 'passed'; if (newVal + item[otherField] > item.qty) { item[otherField] = item.qty - newVal; const otherInput = document.getElementById(`qc-input-${otherField}-${itemIdx}`); if(otherInput) otherInput.value = item[otherField]; } item[field] = newVal; if(shouldSave) app.saveData(); const isComplete = (item.passed + item.failed) === item.qty; const card = document.getElementById(`qc-card-${itemIdx}`); const reasonContainer = document.getElementById(`qc-reason-container-${itemIdx}`); if(reasonContainer) { if(item.failed > 0) reasonContainer.classList.remove('hidden'); else reasonContainer.classList.add('hidden'); } if(card) { if(isComplete) { card.classList.remove('border-slate-200'); card.classList.add('border-emerald-500', 'ring-1', 'ring-emerald-100'); const statusBar = card.querySelector('.bg-emerald-100'); if(statusBar) statusBar.classList.remove('hidden'); } else { card.classList.add('border-slate-200'); card.classList.remove('border-emerald-500', 'ring-1', 'ring-emerald-100'); const statusBar = card.querySelector('.bg-emerald-100'); if(statusBar) statusBar.classList.add('hidden'); } } },
                 updateQCReason(id, itemIdx, val) { const order = app.data.orders.find(o => o.id === id); order.items[itemIdx].qc_reason = val; app.saveData(); },
                 submitQC(id) { const order = app.data.orders.find(o => o.id === id); const incomplete = order.items.some(i => (i.passed + i.failed) !== i.qty); const missingReason = order.items.some(i => i.failed > 0 && !i.qc_reason.trim()); if (incomplete) return app.ui.toast('ข้อผิดพลาด: ตรวจสอบจำนวนไม่ครบถ้วน', 'error'); if (missingReason) return app.ui.toast('ข้อผิดพลาด: กรุณาระบุสาเหตุสำหรับสินค้าที่ไม่ผ่าน', 'error'); const hasFailures = order.items.some(i => i.failed > 0); const allFail = order.items.every(i => i.passed === 0); if (allFail) { order.items.forEach(i => { i.picked = 0; i.picks = []; i.passed=0; i.failed=0; }); order.status = 'pending_stock'; this.log(order, 'QC ปฏิเสธทั้งหมด - ตีกลับสต็อก'); app.saveData(); app.router('dashboard'); app.ui.toast('ปฏิเสธสินค้าทั้งหมด', 'error'); } else if (hasFailures) { app.ui.modal('ผลการตรวจสอบ: ไม่ผ่านบางส่วน', 'มีสินค้าบางรายการไม่ผ่าน QC ระบบจะสร้างออเดอร์งานแก้ (Rework) ใหม่โดยอัตโนมัติ', () => { const reworkOrder = JSON.parse(JSON.stringify(order)); reworkOrder.id = order.id + '-R' + Math.floor(Math.random() * 100); reworkOrder.docNo = order.docNo + ' (Rework)'; reworkOrder.status = 'pending_stock'; reworkOrder.items = order.items.filter(i => i.failed > 0).map(i => ({ ...i, qty: i.failed, picked: 0, picks: [], passed: 0, failed: 0, qc_reason: '' })); reworkOrder.logs = [{ action: 'สร้างออเดอร์', time: new Date().toLocaleString('th-TH'), user: 'ระบบ', detail: `แยกมาจาก ${order.id}` }]; app.data.orders.unshift(reworkOrder); order.items = order.items.map(i => ({ ...i, qty: i.passed, passed: 0, failed: 0 })); order.status = 'pending_pack'; this.log(order, 'ผ่าน QC (บางส่วน) - สร้างออเดอร์แยก'); app.saveData(); app.router('dashboard'); app.ui.toast('แยกออเดอร์สำเร็จ'); }); return; } else { const merged = app.logic.mergeReworkToParent(order); if (merged) { app.saveData(); app.router('dashboard'); app.ui.toast('รวมบิลกลับเข้าออเดอร์หลักเรียบร้อย'); } else { order.status = 'pending_pack'; this.log(order, 'ผ่าน QC ทั้งหมด'); app.saveData(); app.router('dashboard'); app.ui.toast('ผ่าน QC เรียบร้อย'); } } },
