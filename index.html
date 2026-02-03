@@ -997,29 +997,119 @@
                 
                 validateStock(id) {
                     const order = app.data.orders.find(o => o.id === id);
-                    const shortages = order.items.filter(i => i.picked < i.qty);
+                    const shortages = order.items.filter(i => (i.picked || 0) < i.qty);
                     
-                    const proceed = () => {
-                         // Update items: actual qty becomes picked qty for subsequent steps
-                        let updated = false;
+                    const finalize = (createBackorder) => {
+                        let hasChanges = false;
+                        const backorderItems = [];
+                        
+                        // 1. Process items
                         order.items.forEach(item => {
-                            // Ensure picked is integer
                             const picked = item.picked || 0;
-                            if (picked !== item.qty) {
-                                item.original_qty = item.qty; // Save original
-                                item.qty = picked; // Update active qty
-                                updated = true;
+                            const originalQty = item.qty;
+
+                            if (picked < originalQty) {
+                                // Create Backorder Item logic
+                                const missingQty = originalQty - picked;
+                                if (createBackorder && missingQty > 0) {
+                                    backorderItems.push({
+                                        ...item,
+                                        qty: missingQty,
+                                        picked: 0,
+                                        picks: [],
+                                        passed: 0,
+                                        failed: 0,
+                                        qc_reason: ''
+                                    });
+                                }
+
+                                // Update current item to send ONLY picked amount to QC
+                                item.original_qty = originalQty;
+                                item.qty = picked;
+                                hasChanges = true;
                             }
                         });
+
+                        // 2. Filter out empty items from current order (Cleanup)
+                        order.items = order.items.filter(i => i.qty > 0);
+
+                        // 3. Create Backorder Doc if needed
+                        if (createBackorder && backorderItems.length > 0) {
+                            const backorder = JSON.parse(JSON.stringify(order));
+                            backorder.id = `${order.id}-B${Date.now().toString().slice(-4)}`;
+                            backorder.docNo = `${order.docNo} (Backorder)`;
+                            backorder.status = 'pending_stock';
+                            backorder.items = backorderItems;
+                            backorder.logs = [{
+                                action: 'สร้างใบงานค้างส่ง (Backorder)',
+                                time: new Date().toLocaleString('th-TH'),
+                                user: 'ระบบ',
+                                detail: `แยกมาจาก ${order.id} เนื่องจากของขาด`
+                            }];
+                            app.data.orders.unshift(backorder);
+                        }
                         
-                        const msg = updated ? 'เบิกสินค้าเสร็จสิ้น (ปรับยอดตามจริง)' : 'เบิกสินค้าเสร็จสิ้น';
-                        this.moveStatus(id, 'pending_qc', msg);
+                        // 4. Status Transition
+                        if (order.items.length === 0) {
+                             const closeMsg = createBackorder ? 'สินค้าขาดทั้งหมด (สร้างใบ Backorder แล้ว)' : 'ยกเลิกรายการ (ของหมด/Close Short)';
+                             this.moveStatus(id, 'completed', closeMsg);
+                        } else {
+                             let msg = 'เบิกสินค้าเสร็จสิ้น';
+                             if (createBackorder && backorderItems.length > 0) msg += ' (แยกยอดขาดเป็น Backorder)';
+                             else if (hasChanges) msg += ' (ตัดยอดขาดทิ้ง/ของหมด)';
+                             this.moveStatus(id, 'pending_qc', msg);
+                        }
                     };
 
                     if (shortages.length > 0) {
-                        app.ui.modal('จำนวนไม่ครบ', `สินค้าบางรายการไม่ครบตามจำนวน (${shortages.length} รายการ) ระบบจะปรับยอดตามที่เบิกได้จริง ต้องการดำเนินการต่อหรือไม่?`, proceed);
+                        const html = `
+                            <div class="space-y-4">
+                                <div class="bg-orange-50 text-orange-800 p-4 rounded-xl border border-orange-100 flex gap-3">
+                                    <i data-lucide="alert-triangle" class="w-6 h-6 flex-shrink-0"></i>
+                                    <div>
+                                        <h3 class="font-bold text-sm">สินค้าไม่ครบจำนวน (${shortages.length} รายการ)</h3>
+                                        <p class="text-xs mt-1">มีสินค้าที่เบิกได้ไม่ครบตามใบสั่งซื้อ กรุณาเลือกวิธีดำเนินการ:</p>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 gap-3">
+                                    <button id="btn-backorder" class="w-full p-4 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-between group hover:bg-blue-100 transition-colors">
+                                        <div class="text-left">
+                                            <div class="font-bold text-blue-700 text-sm">แยกใบ Backorder</div>
+                                            <div class="text-xs text-blue-500 mt-0.5">สร้างใบงานใหม่สำหรับยอดที่ขาด (รอของมา)</div>
+                                        </div>
+                                        <i data-lucide="files" class="w-5 h-5 text-blue-400 group-hover:text-blue-600"></i>
+                                    </button>
+                                    <button id="btn-close-short" class="w-full p-4 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between group hover:bg-slate-100 transition-colors">
+                                        <div class="text-left">
+                                            <div class="font-bold text-slate-700 text-sm">ตัดจบ (ของหมด/Close Short)</div>
+                                            <div class="text-xs text-slate-500 mt-0.5">ส่งเท่าที่มี ยกเลิกยอดที่ขาดไปเลย</div>
+                                        </div>
+                                        <i data-lucide="x-circle" class="w-5 h-5 text-slate-400 group-hover:text-slate-600"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        
+                        app.ui.modalHTML('ยืนยันการเบิกสินค้า', html, () => {}); // No default confirm action
+                        
+                        setTimeout(() => {
+                            // Hide default confirm button
+                            const defaultConfirm = document.getElementById('modal-confirm');
+                            if(defaultConfirm) defaultConfirm.style.display = 'none';
+                            
+                            // Attach events
+                            document.getElementById('btn-backorder').onclick = () => { 
+                                finalize(true); 
+                                document.getElementById('modal-cancel').click(); 
+                            };
+                            document.getElementById('btn-close-short').onclick = () => { 
+                                finalize(false); 
+                                document.getElementById('modal-cancel').click(); 
+                            };
+                            lucide.createIcons();
+                        }, 50);
                     } else {
-                        proceed();
+                        finalize(false);
                     }
                 },
 
