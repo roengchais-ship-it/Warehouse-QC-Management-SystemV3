@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Warehouse QC Enterprise v3.7 (Stable Scan)</title>
+    <title>Warehouse QC Enterprise v3.8 (Hide Completed)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -113,7 +113,7 @@
                     <i data-lucide="package-check" class="w-8 h-8 text-white"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-800">Warehouse QC</h1>
-                <p class="text-sm text-slate-400">Enterprise Edition v3.7</p>
+                <p class="text-sm text-slate-400">Enterprise Edition v3.8</p>
             </div>
             <div class="space-y-4">
                 <div><label class="text-xs font-bold text-slate-500 mb-1.5 block ml-1">ชื่อผู้ใช้</label><input type="text" id="login-username" class="input-field w-full" placeholder="username"></div>
@@ -733,10 +733,7 @@
                         </div>`;
                     
                     if(order.status === 'pending_pack' && canEdit) {
-                        setTimeout(() => { 
-                            const input = document.getElementById('pack-scan-input');
-                            if(input) input.focus({preventScroll:true}); 
-                        }, 300);
+                        setTimeout(() => { document.getElementById('pack-scan-input')?.focus(); }, 300);
                     }
                 },
 
@@ -761,7 +758,7 @@
                             </div>
                         </div>`;
                 },
-                
+
                 renderStockContent(order, canEdit) {
                     return `<div class="space-y-4">${order.items.map((item, idx) => {
                         const totalPicked = item.picks.reduce((a, b) => a + (parseInt(b.qty)||0), 0);
@@ -807,6 +804,9 @@
                     if (canEdit) {
                         const currentBoxNum = (order.boxes ? order.boxes.length : 0) + 1;
                         const itemsInCurrentBox = order.active_box ? order.active_box.total_qty : 0;
+                        
+                        // Check if all items complete
+                        const allComplete = order.items.every(i => (i.packed_qty || 0) >= i.qty);
 
                         mainContent = `
                         <div class="flex-1 w-full min-w-0">
@@ -837,9 +837,23 @@
                                 </div>
                             </div>
                             <div class="space-y-3">
+                                ${allComplete ? `
+                                    <div class="text-center p-10 bg-emerald-50 rounded-3xl border-2 border-dashed border-emerald-200 animate-fade-in">
+                                        <div class="inline-flex p-4 bg-emerald-100 text-emerald-600 rounded-full mb-3">
+                                            <i data-lucide="check-check" class="w-8 h-8"></i>
+                                        </div>
+                                        <h3 class="text-emerald-800 font-bold text-lg">สินค้าครบตามจำนวนสั่งแล้ว</h3>
+                                        <p class="text-emerald-600 text-sm">กรุณาตรวจทานและกด "ปิดกล่อง" หรือ "ยืนยันแพ็คเสร็จสิ้น"</p>
+                                    </div>
+                                ` : ''}
+
                                 ${order.items.map((item, idx) => {
                                     const packedQty = item.packed_qty || 0;
                                     const isComplete = packedQty >= item.qty;
+                                    
+                                    // Hide if complete
+                                    if (isComplete) return '';
+
                                     const productData = app.data.products.find(p => p.sku === item.sku); 
                                     const barcode = productData ? productData.barcode : (item.sku || '-');
                                     const percent = Math.min(100, Math.round((packedQty / item.qty) * 100));
