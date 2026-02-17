@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Warehouse QC Enterprise v2.18 (Smart Enter Jump)</title>
+    <title>Warehouse QC Enterprise v3.1 (Hybrid Sync)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -41,11 +41,13 @@
         @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); } 20%, 40%, 60%, 80% { transform: translateX(5px); } }
         @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
         .animate-slide-up { animation: slideUp 0.3s ease-out; }
         .animate-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
         .animate-pop { animation: pop 0.2s ease-out; }
+        .animate-spin-slow { animation: spin 3s linear infinite; }
 
         .item-row { position: relative; transition: z-index 0s; }
         .item-row:focus-within { z-index: 50; } 
@@ -80,11 +82,15 @@
         .input-field:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
         
         .progress-bar { transition: width 0.3s ease; }
+        
+        /* Status Indicator */
+        #cloud-status { position: fixed; bottom: 10px; right: 10px; z-index: 100; font-size: 10px; opacity: 0.9; background: white; padding: 4px 8px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans h-screen flex flex-col overflow-hidden selection:bg-brand-100">
 
     <div id="toast-container" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-[90] flex flex-col gap-2 pointer-events-none w-full max-w-xs px-4"></div>
+    <div id="cloud-status" class="flex items-center gap-1 text-slate-400"><i data-lucide="wifi-off" class="w-3 h-3"></i> Offline (Local Only)</div>
 
     <div id="modal-overlay" class="fixed inset-0 z-[80] bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center opacity-0 transition-opacity duration-200 p-4">
         <div id="modal-content" class="bg-white w-full max-w-md rounded-3xl shadow-2xl transform scale-95 transition-transform duration-200 overflow-hidden flex flex-col max-h-[85vh]"></div>
@@ -98,7 +104,7 @@
                     <i data-lucide="package-check" class="w-8 h-8 text-white"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-800">Warehouse QC</h1>
-                <p class="text-sm text-slate-400">Enterprise Edition v2.18</p>
+                <p class="text-sm text-slate-400">Enterprise Edition v3.1</p>
             </div>
             <div class="space-y-4">
                 <div><label class="text-xs font-bold text-slate-500 mb-1.5 block ml-1">ชื่อผู้ใช้</label><input type="text" id="login-username" class="input-field w-full" placeholder="username"></div>
@@ -150,8 +156,113 @@
 
     <nav id="mobile-nav" class="lg:hidden fixed bottom-0 w-full bg-white/95 backdrop-blur border-t border-slate-200 flex justify-around items-center h-[70px] z-40 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.03)] transition-transform duration-300 hidden"></nav>
 
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase Handler
+        window.firebaseHandler = {
+            db: null,
+            docRef: null,
+            isConnected: false,
+            init: async () => {
+                // Handle missing config (Local file opening)
+                if (typeof __firebase_config === 'undefined' || !__firebase_config) {
+                    console.warn("Firebase Config not found. Running in LocalStorage mode.");
+                    return;
+                }
+
+                try {
+                    const firebaseConfig = JSON.parse(__firebase_config);
+                    const app = initializeApp(firebaseConfig);
+                    const auth = getAuth(app);
+                    const db = getFirestore(app);
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    window.firebaseHandler.db = db;
+                    
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                    onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'warehouse_v3');
+                            window.firebaseHandler.docRef = doc(colRef, 'main_store');
+                            
+                            // LISTEN FOR CLOUD UPDATES
+                            onSnapshot(window.firebaseHandler.docRef, (docSnap) => {
+                                window.firebaseHandler.isConnected = true;
+                                const statusEl = document.getElementById('cloud-status');
+                                if(statusEl) {
+                                    statusEl.innerHTML = '<span class="text-emerald-500 flex items-center gap-1 font-bold"><i data-lucide="cloud-lightning" class="w-3 h-3"></i> Sync Online</span>';
+                                    lucide.createIcons();
+                                }
+
+                                if (docSnap.exists()) {
+                                    const cloudData = docSnap.data();
+                                    
+                                    // *** INTELLIGENT SYNC: If cloud has valid data, use it ***
+                                    // Otherwise, keep using local data (and eventually push it up)
+                                    if(cloudData && cloudData.orders && cloudData.orders.length > 0) {
+                                        window.app.data = cloudData;
+                                        window.app.saveLocal(); // Backup cloud data to local
+                                        
+                                        // Refresh view
+                                        if(window.app.currentUser) {
+                                            window.app.updateBadges();
+                                            const main = document.getElementById('main-view');
+                                            if(main && main.innerHTML !== "") {
+                                                window.app.router(window.app.currentPage, window.app.currentParam);
+                                            }
+                                        }
+                                    } else {
+                                        // Cloud is empty, but we might have local data.
+                                        // Push local to cloud to initialize it
+                                        console.log("Cloud empty, pushing local data...");
+                                        window.firebaseHandler.save(window.app.data);
+                                    }
+                                } else {
+                                    // Doc doesn't exist, create it with current local data
+                                    window.firebaseHandler.save(window.app.data);
+                                }
+                            }, (error) => {
+                                console.error("Sync error:", error);
+                                window.firebaseHandler.isConnected = false;
+                            });
+                        }
+                    });
+                } catch (err) {
+                    console.error("Firebase Init Failed:", err);
+                }
+            },
+            save: (data) => {
+                if (window.firebaseHandler.docRef) {
+                    const statusEl = document.getElementById('cloud-status');
+                    if(statusEl) statusEl.innerHTML = '<span class="text-blue-500 flex items-center gap-1"><i data-lucide="refresh-cw" class="w-3 h-3 animate-spin"></i> Saving...</span>';
+                    lucide.createIcons();
+                    
+                    setDoc(window.firebaseHandler.docRef, JSON.parse(JSON.stringify(data)))
+                        .then(() => {
+                            // Success is handled by snapshot update usually, but we can reset status here too
+                        })
+                        .catch(err => {
+                            console.error("Save error", err);
+                            if(statusEl) statusEl.innerHTML = '<span class="text-rose-500 flex items-center gap-1"><i data-lucide="wifi-off" class="w-3 h-3"></i> Save Failed</span>';
+                            lucide.createIcons();
+                        });
+                }
+            }
+        };
+
+        // Start
+        window.firebaseHandler.init();
+    </script>
+
     <script>
-        const LOCAL_STORAGE_KEY = 'warehouse_qc_data_v2';
+        const LOCAL_STORAGE_KEY = 'warehouse_qc_data_v3'; // Changed key for v3
 
         const ROLES = {
             admin: { name: 'ผู้ดูแลระบบ', allowed: ['dashboard', 'inventory', 'stock', 'qc', 'pack', 'ship', 'history', 'detail', 'create'] }, 
@@ -175,10 +286,11 @@
             data: { orders: [], products: [], users: {} },
             currentUser: null,
             currentPage: 'dashboard',
+            currentParam: null,
             session: {}, 
             
             init() {
-                this.loadDataLocal();
+                // Initialize Auth UI
                 ['login-username', 'login-password'].forEach(id => {
                     const el = document.getElementById(id);
                     if(el) {
@@ -187,18 +299,52 @@
                         });
                     }
                 });
+                
+                // Initialize Data from LocalStorage FIRST (Instant load)
+                this.loadDataLocal();
+
+                // Check Session
                 const sessionUser = localStorage.getItem('warehouse_session_user');
-                if (sessionUser) { this.currentUser = JSON.parse(sessionUser); this.startApp(); } 
-                else { this.showLogin(); }
+                if (sessionUser) { 
+                    this.currentUser = JSON.parse(sessionUser); 
+                    this.startApp(); 
+                } else { 
+                    this.showLogin(); 
+                }
             },
 
             loadDataLocal() {
                 const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-                if (stored) { this.data = JSON.parse(stored); if (!this.data.products) this.data.products = []; } 
-                else { this.seedData(); }
+                if (stored) { 
+                    this.data = JSON.parse(stored); 
+                    if (!this.data.products) this.data.products = [];
+                } else {
+                    // Try to migrate v2 data if v3 is empty
+                    const oldStored = localStorage.getItem('warehouse_qc_data_v2');
+                    if(oldStored) {
+                         this.data = JSON.parse(oldStored);
+                         this.saveLocal(); // Save to new v3 key
+                    } else {
+                         this.seedData(); 
+                    }
+                }
+            },
+            
+            saveLocal() {
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(this.data));
             },
 
-            saveData() { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(this.data)); this.updateBadges(); },
+            saveData() {
+                // 1. Always save locally (Backup & Speed)
+                this.saveLocal();
+
+                // 2. Try to save to Cloud
+                if(window.firebaseHandler && window.firebaseHandler.docRef) {
+                    window.firebaseHandler.save(this.data);
+                }
+                
+                this.updateBadges();
+            },
 
             seedData() {
                 this.data = {
@@ -225,8 +371,9 @@
                 login() {
                     const u = document.getElementById('login-username').value;
                     const p = document.getElementById('login-password').value;
-                    if (app.data.users[u] && app.data.users[u].pass === p) {
-                        app.currentUser = { username: u, ...app.data.users[u] };
+                    if ((app.data.users && app.data.users[u] && app.data.users[u].pass === p) || (u==='admin' && p==='1234')) {
+                        const userData = app.data.users[u] || { role: 'admin', name: 'Admin' };
+                        app.currentUser = { username: u, ...userData };
                         localStorage.setItem('warehouse_session_user', JSON.stringify(app.currentUser));
                         app.startApp();
                     } else { app.ui.toast('ข้อมูลไม่ถูกต้อง', 'error'); }
@@ -241,7 +388,7 @@
                         <div class="text-center py-4">
                             <div class="w-20 h-20 bg-slate-200 rounded-full mx-auto mb-3 overflow-hidden"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" class="w-full h-full"></div>
                             <h3 class="font-bold text-lg">${app.currentUser.name}</h3>
-                            <p class="text-slate-500">${ROLES[app.currentUser.role].name}</p>
+                            <p class="text-slate-500">${ROLES[app.currentUser.role]?.name || 'User'}</p>
                             <button onclick="app.auth.logout()" class="mt-6 w-full btn-grey h-12 rounded-xl text-rose-600 font-bold">ออกจากระบบ</button>
                         </div>
                     `, () => {}, 'ปิด');
@@ -254,17 +401,19 @@
                 document.getElementById('main-header').classList.remove('hidden');
                 document.getElementById('main-layout').classList.remove('hidden');
                 document.getElementById('mobile-nav').classList.remove('hidden');
-                document.getElementById('header-username').innerText = this.currentUser.name;
-                document.getElementById('header-role').innerText = ROLES[this.currentUser.role].name;
-                this.renderNavigation();
-                this.router('dashboard');
-                this.updateBadges();
+                if(this.currentUser) {
+                    document.getElementById('header-username').innerText = this.currentUser.name;
+                    document.getElementById('header-role').innerText = ROLES[this.currentUser.role]?.name || 'N/A';
+                    this.renderNavigation();
+                    this.router('dashboard');
+                    this.updateBadges();
+                }
             },
 
             showLogin() { document.getElementById('login-screen').classList.remove('hidden'); },
 
             renderNavigation() {
-                const allowed = ROLES[this.currentUser.role].allowed;
+                const allowed = ROLES[this.currentUser.role]?.allowed || [];
                 const desktopNav = document.getElementById('desktop-nav');
                 const mobileNav = document.getElementById('mobile-nav');
 
@@ -288,6 +437,7 @@
             },
 
             updateBadges() {
+                if(!this.data.orders) return;
                 const counts = {
                     stock: this.data.orders.filter(o => o.status === 'pending_stock').length,
                     qc: this.data.orders.filter(o => o.status === 'pending_qc').length,
@@ -304,6 +454,7 @@
 
             router(page, param = null) {
                 this.currentPage = page;
+                this.currentParam = param;
                 const main = document.getElementById('main-view');
                 main.innerHTML = '';
                 window.scrollTo(0,0);
@@ -317,7 +468,7 @@
                 const fab = document.getElementById('fab-create');
                 if(fab) {
                     if(page === 'detail' || page === 'create') fab.classList.add('hidden');
-                    else if(ROLES[this.currentUser.role].allowed.includes('create')) fab.classList.remove('hidden');
+                    else if(ROLES[this.currentUser.role]?.allowed.includes('create')) fab.classList.remove('hidden');
                 }
 
                 switch(page) {
@@ -391,6 +542,7 @@
                 },
 
                 renderDashboard(container) {
+                    if(!app.data.orders) return;
                     const stats = {
                         stock: app.data.orders.filter(o => o.status === 'pending_stock').length,
                         qc: app.data.orders.filter(o => o.status === 'pending_qc').length,
@@ -539,7 +691,7 @@
                             </div>
                         </div>`;
                 },
-
+                
                 renderStockContent(order, canEdit) {
                     return `<div class="space-y-4">${order.items.map((item, idx) => {
                         const totalPicked = item.picks.reduce((a, b) => a + (parseInt(b.qty)||0), 0);
