@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Warehouse QC Enterprise v3.1 (Hybrid Sync)</title>
+    <title>Warehouse QC Enterprise v3.2 (Connection Fix)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
+        // Check if library loaded, fallback if needed
         if (typeof pdfjsLib !== 'undefined') {
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         }
@@ -33,22 +34,23 @@
         }
     </script>
     <style>
+        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 
+        /* Animations */
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); } 20%, 40%, 60%, 80% { transform: translateX(5px); } }
         @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
         .animate-slide-up { animation: slideUp 0.3s ease-out; }
         .animate-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
         .animate-pop { animation: pop 0.2s ease-out; }
-        .animate-spin-slow { animation: spin 3s linear infinite; }
 
+        /* Fix Dropdown Z-Index Clipping */
         .item-row { position: relative; transition: z-index 0s; }
         .item-row:focus-within { z-index: 50; } 
         
@@ -84,13 +86,19 @@
         .progress-bar { transition: width 0.3s ease; }
         
         /* Status Indicator */
-        #cloud-status { position: fixed; bottom: 10px; right: 10px; z-index: 100; font-size: 10px; opacity: 0.9; background: white; padding: 4px 8px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+        #cloud-status { position: fixed; bottom: 10px; right: 10px; z-index: 100; font-size: 11px; opacity: 0.9; background: white; padding: 6px 12px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 6px; font-weight: 500; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans h-screen flex flex-col overflow-hidden selection:bg-brand-100">
 
     <div id="toast-container" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-[90] flex flex-col gap-2 pointer-events-none w-full max-w-xs px-4"></div>
-    <div id="cloud-status" class="flex items-center gap-1 text-slate-400"><i data-lucide="wifi-off" class="w-3 h-3"></i> Offline (Local Only)</div>
+    <div id="cloud-status">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-slate-500"></span>
+        </span>
+        Checking...
+    </div>
 
     <div id="modal-overlay" class="fixed inset-0 z-[80] bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center opacity-0 transition-opacity duration-200 p-4">
         <div id="modal-content" class="bg-white w-full max-w-md rounded-3xl shadow-2xl transform scale-95 transition-transform duration-200 overflow-hidden flex flex-col max-h-[85vh]"></div>
@@ -104,7 +112,7 @@
                     <i data-lucide="package-check" class="w-8 h-8 text-white"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-800">Warehouse QC</h1>
-                <p class="text-sm text-slate-400">Enterprise Edition v3.1</p>
+                <p class="text-sm text-slate-400">Enterprise Edition v3.2</p>
             </div>
             <div class="space-y-4">
                 <div><label class="text-xs font-bold text-slate-500 mb-1.5 block ml-1">ชื่อผู้ใช้</label><input type="text" id="login-username" class="input-field w-full" placeholder="username"></div>
@@ -167,9 +175,32 @@
             docRef: null,
             isConnected: false,
             init: async () => {
-                // Handle missing config (Local file opening)
+                const statusEl = document.getElementById('cloud-status');
+                
+                // 1. Check Internet Connection
+                if (!navigator.onLine) {
+                     if(statusEl) statusEl.innerHTML = '<span class="text-slate-400"><i data-lucide="wifi-off" class="w-3 h-3 inline"></i> Offline Mode</span>';
+                     lucide.createIcons();
+                }
+                
+                // Listen for network changes
+                window.addEventListener('offline', () => {
+                    if(statusEl) statusEl.innerHTML = '<span class="text-rose-500"><i data-lucide="wifi-off" class="w-3 h-3 inline"></i> No Internet</span>';
+                    lucide.createIcons();
+                });
+                
+                window.addEventListener('online', () => {
+                     if(statusEl) statusEl.innerHTML = '<span class="text-blue-500"><i data-lucide="refresh-cw" class="w-3 h-3 inline animate-spin"></i> Reconnecting...</span>';
+                     lucide.createIcons();
+                });
+
+                // 2. Check Config
                 if (typeof __firebase_config === 'undefined' || !__firebase_config) {
                     console.warn("Firebase Config not found. Running in LocalStorage mode.");
+                    if(statusEl) {
+                        statusEl.innerHTML = '<span class="text-slate-500 flex items-center gap-1"><i data-lucide="hard-drive" class="w-3 h-3"></i> Local Mode (No Sync)</span>';
+                        lucide.createIcons();
+                    }
                     return;
                 }
 
@@ -181,10 +212,16 @@
                     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                     window.firebaseHandler.db = db;
                     
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (authError) {
+                        console.error("Auth Error", authError);
+                         if(statusEl) statusEl.innerHTML = '<span class="text-rose-500">Cloud Auth Failed</span>';
+                         return; // Stop if auth fails
                     }
 
                     onAuthStateChanged(auth, (user) => {
@@ -195,22 +232,19 @@
                             // LISTEN FOR CLOUD UPDATES
                             onSnapshot(window.firebaseHandler.docRef, (docSnap) => {
                                 window.firebaseHandler.isConnected = true;
-                                const statusEl = document.getElementById('cloud-status');
                                 if(statusEl) {
-                                    statusEl.innerHTML = '<span class="text-emerald-500 flex items-center gap-1 font-bold"><i data-lucide="cloud-lightning" class="w-3 h-3"></i> Sync Online</span>';
+                                    statusEl.innerHTML = '<span class="text-emerald-600 flex items-center gap-1 font-bold"><span class="relative flex h-2 w-2 mr-1"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span> Cloud Synced</span>';
                                     lucide.createIcons();
                                 }
 
                                 if (docSnap.exists()) {
                                     const cloudData = docSnap.data();
                                     
-                                    // *** INTELLIGENT SYNC: If cloud has valid data, use it ***
-                                    // Otherwise, keep using local data (and eventually push it up)
-                                    if(cloudData && cloudData.orders && cloudData.orders.length > 0) {
+                                    // MERGE STRATEGY: Cloud Wins
+                                    if(cloudData && cloudData.orders) {
                                         window.app.data = cloudData;
-                                        window.app.saveLocal(); // Backup cloud data to local
+                                        window.app.saveLocal(); 
                                         
-                                        // Refresh view
                                         if(window.app.currentUser) {
                                             window.app.updateBadges();
                                             const main = document.getElementById('main-view');
@@ -218,19 +252,15 @@
                                                 window.app.router(window.app.currentPage, window.app.currentParam);
                                             }
                                         }
-                                    } else {
-                                        // Cloud is empty, but we might have local data.
-                                        // Push local to cloud to initialize it
-                                        console.log("Cloud empty, pushing local data...");
-                                        window.firebaseHandler.save(window.app.data);
-                                    }
+                                    } 
                                 } else {
-                                    // Doc doesn't exist, create it with current local data
+                                    // Initialize Cloud if empty
                                     window.firebaseHandler.save(window.app.data);
                                 }
                             }, (error) => {
                                 console.error("Sync error:", error);
                                 window.firebaseHandler.isConnected = false;
+                                if(statusEl) statusEl.innerHTML = '<span class="text-rose-500">Sync Error (Retrying...)</span>';
                             });
                         }
                     });
@@ -241,17 +271,18 @@
             save: (data) => {
                 if (window.firebaseHandler.docRef) {
                     const statusEl = document.getElementById('cloud-status');
-                    if(statusEl) statusEl.innerHTML = '<span class="text-blue-500 flex items-center gap-1"><i data-lucide="refresh-cw" class="w-3 h-3 animate-spin"></i> Saving...</span>';
-                    lucide.createIcons();
+                    if(statusEl) {
+                         const original = statusEl.innerHTML;
+                         statusEl.innerHTML = '<span class="text-blue-500 flex items-center gap-1"><i data-lucide="refresh-cw" class="w-3 h-3 animate-spin"></i> Saving...</span>';
+                         lucide.createIcons();
+                    }
                     
                     setDoc(window.firebaseHandler.docRef, JSON.parse(JSON.stringify(data)))
                         .then(() => {
-                            // Success is handled by snapshot update usually, but we can reset status here too
+                            // Status will revert on snapshot update
                         })
                         .catch(err => {
                             console.error("Save error", err);
-                            if(statusEl) statusEl.innerHTML = '<span class="text-rose-500 flex items-center gap-1"><i data-lucide="wifi-off" class="w-3 h-3"></i> Save Failed</span>';
-                            lucide.createIcons();
                         });
                 }
             }
