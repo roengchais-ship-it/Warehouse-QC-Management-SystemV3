@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Warehouse QC Enterprise v3.4 (Fix Scroll Jump)</title>
+    <title>Warehouse QC Enterprise v3.6 (Syntax Fix)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -113,7 +113,7 @@
                     <i data-lucide="package-check" class="w-8 h-8 text-white"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-800">Warehouse QC</h1>
-                <p class="text-sm text-slate-400">Enterprise Edition v3.4</p>
+                <p class="text-sm text-slate-400">Enterprise Edition v3.6</p>
             </div>
             <div class="space-y-4">
                 <div><label class="text-xs font-bold text-slate-500 mb-1.5 block ml-1">ชื่อผู้ใช้</label><input type="text" id="login-username" class="input-field w-full" placeholder="username"></div>
@@ -1270,7 +1270,7 @@
                     setTimeout(() => {
                         const nextEl = document.getElementById(nextId);
                         if (nextEl && document.activeElement !== nextEl) {
-                             nextEl.focus();
+                             nextEl.focus({preventScroll:true});
                              nextEl.select();
                              this.nextFocusTarget = null;
                         }
@@ -1286,7 +1286,7 @@
                     setTimeout(() => {
                         const nextEl = document.getElementById(nextId);
                         if (nextEl && document.activeElement !== nextEl) {
-                             nextEl.focus();
+                             nextEl.focus({preventScroll:true});
                              nextEl.select();
                              this.nextFocusTarget = null;
                         }
@@ -1296,6 +1296,8 @@
                 refreshDetail(id) {
                     const main = document.getElementById('main-view');
                     const scroller = document.getElementById('detail-scroller');
+                    // Capture active element before render
+                    const activeId = document.activeElement ? document.activeElement.id : null;
                     const savedScroll = scroller ? scroller.scrollTop : 0;
                     
                     app.views.renderDetail(main, id);
@@ -1308,10 +1310,14 @@
                     const newScroller = document.getElementById('detail-scroller');
                     if(newScroller) newScroller.scrollTop = savedScroll;
 
+                    // Smart Focus Restoration
                     if (app.logic.nextFocusTarget) {
                         const nextEl = document.getElementById(app.logic.nextFocusTarget);
-                        if (nextEl) { nextEl.focus(); nextEl.select(); }
+                        if (nextEl) { nextEl.focus({preventScroll:true}); nextEl.select(); }
                         app.logic.nextFocusTarget = null;
+                    } else if (activeId) {
+                         const el = document.getElementById(activeId);
+                         if(el) el.focus({preventScroll:true});
                     }
                 },
 
@@ -1350,7 +1356,7 @@
                         app.session.selectedPackIndex = idx; 
                     }
                     this.refreshDetail(orderId);
-                    setTimeout(() => { document.getElementById('pack-scan-input')?.focus(); }, 50);
+                    setTimeout(() => { document.getElementById('pack-scan-input')?.focus({preventScroll:true}); }, 50);
                 },
 
                 scanPackItem(orderId, barcode) {
@@ -1431,9 +1437,10 @@
                     this.refreshDetail(orderId);
                     app.ui.toast(`แพ็ค "${item.name}" เพิ่ม ${multiplier} ชิ้น`);
                     
+                    // Re-focus without scrolling
                     setTimeout(() => { 
                         const scanIn = document.getElementById('pack-scan-input');
-                        if(scanIn) scanIn.focus(); 
+                        if(scanIn) scanIn.focus({preventScroll:true}); 
                     }, 50);
                 },
 
@@ -1590,7 +1597,7 @@
                         <html>
                         <head>
                             <title>Print Label - Box ${boxNumber}</title>
-                            <script src="https://cdn.tailwindcss.com"><\/script>
+                            <script src="https://cdn.tailwindcss.com"><` + `/script>
                             <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
                             <style>
                                 body { font-family: 'Sarabun', sans-serif; padding: 20px; margin: 0; }
@@ -1609,7 +1616,7 @@
                                 setTimeout(() => {
                                     window.print();
                                 }, 800); 
-                            <\/script>
+                            <` + `/script>
                         </body>
                         </html>
                     `);
@@ -1667,7 +1674,7 @@
                     }
                     const doc = frame.contentWindow.document;
                     doc.open();
-                    doc.write(`<html><head><title>Packing List</title><script src="https://cdn.tailwindcss.com"><\/script><link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap" rel="stylesheet"><style>body{font-family:'Sarabun';}</style></head><body>${html}<script>setTimeout(()=>{window.print()},800)<\/script></body></html>`);
+                    doc.write(`<html><head><title>Packing List</title><script src="https://cdn.tailwindcss.com"><` + `/script><link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap" rel="stylesheet"><style>body{font-family:'Sarabun';}</style></head><body>${html}<script>setTimeout(()=>{window.print()},800)<` + `/script></body></html>`);
                     doc.close();
                 },
 
