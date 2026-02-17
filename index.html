@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Warehouse QC Enterprise v3.2 (Connection Fix)</title>
+    <title>Warehouse QC Enterprise v3.3 (GitHub Ready)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -44,13 +44,14 @@
         @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); } 20%, 40%, 60%, 80% { transform: translateX(5px); } }
         @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
         .animate-slide-up { animation: slideUp 0.3s ease-out; }
         .animate-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
         .animate-pop { animation: pop 0.2s ease-out; }
+        .animate-spin-slow { animation: spin 3s linear infinite; }
 
-        /* Fix Dropdown Z-Index Clipping */
         .item-row { position: relative; transition: z-index 0s; }
         .item-row:focus-within { z-index: 50; } 
         
@@ -112,7 +113,7 @@
                     <i data-lucide="package-check" class="w-8 h-8 text-white"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-800">Warehouse QC</h1>
-                <p class="text-sm text-slate-400">Enterprise Edition v3.2</p>
+                <p class="text-sm text-slate-400">Enterprise Edition v3.3</p>
             </div>
             <div class="space-y-4">
                 <div><label class="text-xs font-bold text-slate-500 mb-1.5 block ml-1">ชื่อผู้ใช้</label><input type="text" id="login-username" class="input-field w-full" placeholder="username"></div>
@@ -169,6 +170,20 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // --- ตั้งค่า Firebase ของคุณที่นี่ ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyC_gvuDL3XqwBpU1Ns3VSILDOCaf9n6Uik",
+            authDomain: "warehouse-qc-management-system.firebaseapp.com",
+            projectId: "warehouse-qc-management-system",
+            storageBucket: "warehouse-qc-management-system.firebasestorage.app",
+            messagingSenderId: "1033934968682",
+            appId: "1:1033934968682:web:9a4cfd06d0d5335d527713",
+            measurementId: "G-JX6KLL0PJS"
+        };
+        // ----------------------------------
+        
+        const appId = 'warehouse-qc-main'; // ตั้งชื่อ App ID ที่นี่
+
         // Global Firebase Handler
         window.firebaseHandler = {
             db: null,
@@ -183,7 +198,6 @@
                      lucide.createIcons();
                 }
                 
-                // Listen for network changes
                 window.addEventListener('offline', () => {
                     if(statusEl) statusEl.innerHTML = '<span class="text-rose-500"><i data-lucide="wifi-off" class="w-3 h-3 inline"></i> No Internet</span>';
                     lucide.createIcons();
@@ -194,40 +208,59 @@
                      lucide.createIcons();
                 });
 
-                // 2. Check Config
-                if (typeof __firebase_config === 'undefined' || !__firebase_config) {
-                    console.warn("Firebase Config not found. Running in LocalStorage mode.");
+                // 2. Check Config Validation
+                if (firebaseConfig.apiKey === "YOUR_API_KEY_HERE") {
+                    console.warn("Firebase Config not setup.");
                     if(statusEl) {
                         statusEl.innerHTML = '<span class="text-slate-500 flex items-center gap-1"><i data-lucide="hard-drive" class="w-3 h-3"></i> Local Mode (No Sync)</span>';
                         lucide.createIcons();
+                    }
+                    
+                    // Show Setup Guide Modal once
+                    if(!localStorage.getItem('hide_setup_guide')) {
+                         setTimeout(() => {
+                             if(window.app && window.app.ui) {
+                                 window.app.ui.modalHTML("การตั้งค่า GitHub / Firebase", `
+                                    <div class="text-sm text-slate-600">
+                                        <p class="mb-2">คุณกำลังรันไฟล์นี้บน GitHub หรือเครื่องตัวเอง</p>
+                                        <p class="mb-2">เพื่อให้ระบบ Cloud Sync ทำงาน (ข้อมูลเด้งไปเครื่องอื่น) คุณต้อง:</p>
+                                        <ol class="list-decimal pl-5 space-y-1 mb-4">
+                                            <li>ไปที่ <a href="https://console.firebase.google.com" target="_blank" class="text-blue-500 underline font-bold">Firebase Console</a></li>
+                                            <li>สร้าง Project ใหม่ และเพิ่ม Web App</li>
+                                            <li>คัดลอก <b>firebaseConfig</b> มาแทนที่ในบรรทัดที่ 266 ของไฟล์นี้</li>
+                                            <li>เปิดใช้งาน <b>Firestore Database</b> และ <b>Authentication</b> (Anonymous) ใน Firebase Console</li>
+                                        </ol>
+                                        <p class="text-xs text-slate-400 bg-slate-100 p-2 rounded">ตอนนี้ระบบจะทำงานแบบ Offline (ข้อมูลบันทึกในเครื่องนี้เท่านั้น)</p>
+                                    </div>
+                                `, () => { localStorage.setItem('hide_setup_guide', 'true'); }, "เข้าใจแล้ว");
+                             }
+                         }, 1000);
                     }
                     return;
                 }
 
                 try {
-                    const firebaseConfig = JSON.parse(__firebase_config);
                     const app = initializeApp(firebaseConfig);
                     const auth = getAuth(app);
                     const db = getFirestore(app);
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                     window.firebaseHandler.db = db;
                     
-                    try {
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await signInWithCustomToken(auth, __initial_auth_token);
-                        } else {
-                            await signInAnonymously(auth);
+                    // Try to use provided initial auth token if available, otherwise anonymous
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        try {
+                             await signInWithCustomToken(auth, __initial_auth_token);
+                        } catch (e) {
+                             console.warn("Custom token auth failed, falling back to anonymous", e);
+                             await signInAnonymously(auth);
                         }
-                    } catch (authError) {
-                        console.error("Auth Error", authError);
-                         if(statusEl) statusEl.innerHTML = '<span class="text-rose-500">Cloud Auth Failed</span>';
-                         return; // Stop if auth fails
+                    } else {
+                        await signInAnonymously(auth);
                     }
 
                     onAuthStateChanged(auth, (user) => {
                         if (user) {
-                            const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'warehouse_v3');
-                            window.firebaseHandler.docRef = doc(colRef, 'main_store');
+                            const colRef = collection(db, 'warehouse_data');
+                            window.firebaseHandler.docRef = doc(colRef, appId);
                             
                             // LISTEN FOR CLOUD UPDATES
                             onSnapshot(window.firebaseHandler.docRef, (docSnap) => {
@@ -248,6 +281,7 @@
                                         if(window.app.currentUser) {
                                             window.app.updateBadges();
                                             const main = document.getElementById('main-view');
+                                            // Only refresh if already logged in and view is active to prevent jitter
                                             if(main && main.innerHTML !== "") {
                                                 window.app.router(window.app.currentPage, window.app.currentParam);
                                             }
@@ -260,12 +294,13 @@
                             }, (error) => {
                                 console.error("Sync error:", error);
                                 window.firebaseHandler.isConnected = false;
-                                if(statusEl) statusEl.innerHTML = '<span class="text-rose-500">Sync Error (Retrying...)</span>';
+                                if(statusEl) statusEl.innerHTML = '<span class="text-rose-500">Sync Error (Check Console)</span>';
                             });
                         }
                     });
                 } catch (err) {
                     console.error("Firebase Init Failed:", err);
+                    if(statusEl) statusEl.innerHTML = '<span class="text-rose-500">Config Error</span>';
                 }
             },
             save: (data) => {
@@ -293,7 +328,7 @@
     </script>
 
     <script>
-        const LOCAL_STORAGE_KEY = 'warehouse_qc_data_v3'; // Changed key for v3
+        const LOCAL_STORAGE_KEY = 'warehouse_qc_data_v3_gh'; 
 
         const ROLES = {
             admin: { name: 'ผู้ดูแลระบบ', allowed: ['dashboard', 'inventory', 'stock', 'qc', 'pack', 'ship', 'history', 'detail', 'create'] }, 
@@ -350,14 +385,7 @@
                     this.data = JSON.parse(stored); 
                     if (!this.data.products) this.data.products = [];
                 } else {
-                    // Try to migrate v2 data if v3 is empty
-                    const oldStored = localStorage.getItem('warehouse_qc_data_v2');
-                    if(oldStored) {
-                         this.data = JSON.parse(oldStored);
-                         this.saveLocal(); // Save to new v3 key
-                    } else {
-                         this.seedData(); 
-                    }
+                    this.seedData(); 
                 }
             },
             
