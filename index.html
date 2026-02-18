@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Warehouse QC Enterprise v3.9.2 (Fix Syntax Error)</title>
+    <title>Warehouse QC Enterprise v3.10 (Auto Focus & Verification)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -113,7 +113,7 @@
                     <i data-lucide="package-check" class="w-8 h-8 text-white"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-800">Warehouse QC</h1>
-                <p class="text-sm text-slate-400">Enterprise Edition v3.9.2</p>
+                <p class="text-sm text-slate-400">Enterprise Edition v3.10</p>
             </div>
             <div class="space-y-4">
                 <div><label class="text-xs font-bold text-slate-500 mb-1.5 block ml-1">ชื่อผู้ใช้</label><input type="text" id="login-username" class="input-field w-full" placeholder="username"></div>
@@ -737,6 +737,28 @@
                     }
                 },
 
+                renderList(container, status, title, icon, bgClass) {
+                    const list = app.data.orders.filter(o => o.status === status);
+                    container.innerHTML = `
+                        <div class="p-4 lg:p-8 space-y-6 animate-fade-in pb-32 max-w-3xl mx-auto">
+                            <div class="flex items-center gap-4 mb-6">
+                                <div class="p-3 rounded-2xl ${bgClass} shadow-sm"><i data-lucide="${icon}" class="w-7 h-7"></i></div>
+                                <div><h2 class="text-2xl font-bold text-slate-800">${title}</h2><p class="text-sm text-slate-500">${list.length} รายการ</p></div>
+                            </div>
+                            <div class="space-y-4">
+                                ${list.length === 0 ? `<div class="text-center py-20 text-slate-400 border-2 border-dashed border-slate-200 rounded-3xl">ไม่พบรายการ</div>` : list.map(o => `
+                                    <div onclick="app.router('detail', '${o.id}')" class="bg-white p-6 rounded-3xl shadow-soft border border-slate-100 active:scale-[0.98] transition-all cursor-pointer hover:shadow-lg hover:border-brand-200 relative group">
+                                        ${o.docNo.includes('(Rework)') ? '<div class="absolute top-0 right-0 bg-red-500 text-white text-[10px] px-3 py-1 rounded-bl-xl font-bold">Rework</div>' : ''}
+                                        <div class="flex justify-between items-start mb-3"><span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-lg border border-slate-200">${o.id}</span><span class="text-xs text-slate-400">${o.date.split(',')[0]}</span></div>
+                                        <h3 class="font-bold text-slate-800 text-lg mb-1 group-hover:text-brand-600 transition-colors">${o.customer}</h3>
+                                        <p class="text-sm text-slate-500 bg-slate-50 px-2 py-1 rounded-lg inline-block mb-3"><i data-lucide="file-text" class="w-3 h-3 inline mr-1"></i>${o.docNo}</p>
+                                        <div class="flex items-center justify-between border-t border-slate-50 pt-4"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">${o.items.length} รายการสินค้า</span><i data-lucide="chevron-right" class="w-5 h-5 text-slate-300"></i></div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>`;
+                },
+
                 renderHistory(container) {
                     const list = app.data.orders ? app.data.orders.filter(o => o.status === 'completed') : [];
                     container.innerHTML = `
@@ -763,28 +785,6 @@
                             </div>
                         </div>`;
                      lucide.createIcons();
-                },
-
-                renderList(container, status, title, icon, bgClass) {
-                    const list = app.data.orders.filter(o => o.status === status);
-                    container.innerHTML = `
-                        <div class="p-4 lg:p-8 space-y-6 animate-fade-in pb-32 max-w-3xl mx-auto">
-                            <div class="flex items-center gap-4 mb-6">
-                                <div class="p-3 rounded-2xl ${bgClass} shadow-sm"><i data-lucide="${icon}" class="w-7 h-7"></i></div>
-                                <div><h2 class="text-2xl font-bold text-slate-800">${title}</h2><p class="text-sm text-slate-500">${list.length} รายการ</p></div>
-                            </div>
-                            <div class="space-y-4">
-                                ${list.length === 0 ? `<div class="text-center py-20 text-slate-400 border-2 border-dashed border-slate-200 rounded-3xl">ไม่พบรายการ</div>` : list.map(o => `
-                                    <div onclick="app.router('detail', '${o.id}')" class="bg-white p-6 rounded-3xl shadow-soft border border-slate-100 active:scale-[0.98] transition-all cursor-pointer hover:shadow-lg hover:border-brand-200 relative group">
-                                        ${o.docNo.includes('(Rework)') ? '<div class="absolute top-0 right-0 bg-red-500 text-white text-[10px] px-3 py-1 rounded-bl-xl font-bold">Rework</div>' : ''}
-                                        <div class="flex justify-between items-start mb-3"><span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-lg border border-slate-200">${o.id}</span><span class="text-xs text-slate-400">${o.date.split(',')[0]}</span></div>
-                                        <h3 class="font-bold text-slate-800 text-lg mb-1 group-hover:text-brand-600 transition-colors">${o.customer}</h3>
-                                        <p class="text-sm text-slate-500 bg-slate-50 px-2 py-1 rounded-lg inline-block mb-3"><i data-lucide="file-text" class="w-3 h-3 inline mr-1"></i>${o.docNo}</p>
-                                        <div class="flex items-center justify-between border-t border-slate-50 pt-4"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">${o.items.length} รายการสินค้า</span><i data-lucide="chevron-right" class="w-5 h-5 text-slate-300"></i></div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>`;
                 },
 
                 renderStockContent(order, canEdit) {
@@ -836,20 +836,46 @@
                         // Check if all items complete
                         const allComplete = order.items.every(i => (i.packed_qty || 0) >= i.qty);
 
+                        // Last Scanned Item Card (The big top card)
+                        let scannedItemCard = '';
+                        if (app.session.selectedPackIndex !== null && app.session.selectedPackIndex !== undefined) {
+                            const item = order.items[app.session.selectedPackIndex];
+                            const productData = app.data.products.find(p => p.sku === item.sku); 
+                            const barcode = productData ? productData.barcode : (item.sku || '-');
+                            
+                            scannedItemCard = `
+                                <div class="bg-blue-600 rounded-2xl p-6 mb-4 shadow-xl text-white transform transition-all animate-pop">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <span class="bg-white/20 px-3 py-1 rounded-lg text-sm font-bold backdrop-blur-sm">📦 กำลังแพ็ค</span>
+                                        <span class="text-2xl font-black">${item.packed_qty} / ${item.qty}</span>
+                                    </div>
+                                    <h2 class="text-2xl font-bold leading-tight mb-2">${item.name}</h2>
+                                    <div class="flex items-center gap-2 opacity-80 font-mono text-sm">
+                                        <i data-lucide="scan-barcode" class="w-4 h-4"></i> ${barcode}
+                                    </div>
+                                </div>
+                            `;
+                        }
+
                         mainContent = `
                         <div class="flex-1 w-full min-w-0">
-                            <div class="sticky top-0 z-10 -mx-4 -mt-4 mb-4 px-4 pt-4 pb-2 bg-slate-50/95 backdrop-blur space-y-3">
+                            <div class="sticky top-0 z-20 -mx-4 -mt-4 mb-4 px-4 pt-4 pb-2 bg-slate-50/95 backdrop-blur space-y-3">
+                                
+                                ${scannedItemCard}
+
                                 <!-- Box Management Dashboard -->
-                                <div class="bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl p-4 shadow-lg text-white flex justify-between items-center">
-                                    <div>
-                                        <div class="text-blue-100 text-xs font-bold uppercase tracking-wider mb-1">กำลังแพ็ค</div>
-                                        <div class="text-3xl font-black flex items-baseline gap-2">
-                                            กล่องที่ ${currentBoxNum}
-                                            <span class="text-sm font-normal text-blue-100 bg-white/20 px-2 py-0.5 rounded-lg">สินค้า ${itemsInCurrentBox} ชิ้น</span>
+                                <div class="bg-white rounded-2xl p-4 shadow-sm border border-blue-100 flex justify-between items-center">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
+                                            <i data-lucide="box" class="w-6 h-6"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-xs text-slate-400 font-bold uppercase">Current Box</div>
+                                            <div class="text-lg font-black text-slate-800">กล่องที่ ${currentBoxNum} <span class="text-sm font-normal text-slate-400">(${itemsInCurrentBox} ชิ้น)</span></div>
                                         </div>
                                     </div>
-                                    <button onclick="app.logic.closeBox('${order.id}')" class="bg-white text-blue-600 px-4 py-2 rounded-xl font-bold text-sm shadow-sm hover:bg-blue-50 transition-colors flex items-center gap-2">
-                                        <i data-lucide="package-check" class="w-4 h-4"></i> ปิดกล่องนี้
+                                    <button onclick="app.logic.closeBox('${order.id}')" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-md hover:bg-blue-700 transition-colors">
+                                        ปิดกล่อง
                                     </button>
                                 </div>
 
@@ -864,7 +890,8 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="space-y-3">
+
+                            <div class="space-y-3 pb-20">
                                 ${allComplete ? `
                                     <div class="text-center p-10 bg-emerald-50 rounded-3xl border-2 border-dashed border-emerald-200 animate-fade-in">
                                         <div class="inline-flex p-4 bg-emerald-100 text-emerald-600 rounded-full mb-3">
@@ -879,59 +906,46 @@
                                     const packedQty = item.packed_qty || 0;
                                     const isComplete = packedQty >= item.qty;
                                     
-                                    // *** NEW: HIDE COMPLETED ITEMS ***
+                                    // *** AUTO HIDE COMPLETED ITEMS ***
                                     if (isComplete) return '';
 
                                     const productData = app.data.products.find(p => p.sku === item.sku); 
                                     const barcode = productData ? productData.barcode : (item.sku || '-');
                                     const percent = Math.min(100, Math.round((packedQty / item.qty) * 100));
                                     
-                                    // Current box qty for this item
-                                    const inBoxQty = (order.active_box && order.active_box.items && order.active_box.items[item.sku]) || 0;
-                                    
                                     // Focus Mode Logic
                                     const isSelected = app.session.selectedPackIndex === idx;
-                                    const rowClass = isSelected ? 'ring-4 ring-blue-400 bg-blue-50/50 transform scale-[1.01]' : (isComplete ? 'border-emerald-200 ring-1 ring-emerald-100' : 'border-slate-100');
+                                    const rowClass = isSelected ? 'ring-4 ring-blue-400 bg-blue-50/50 transform scale-[1.01]' : 'border-slate-100';
                                     
                                     return `
-                                    <div onclick="app.logic.selectPackItem('${order.id}', ${idx})" class="cursor-pointer bg-white rounded-3xl border ${rowClass} shadow-soft overflow-hidden transition-all duration-200 relative group">
-                                        ${isSelected ? '<div class="absolute top-0 right-0 bg-blue-500 text-white text-[10px] px-2 py-1 rounded-bl-xl font-bold z-10">LOCKED</div>' : ''}
+                                    <div id="pack-item-${idx}" onclick="app.logic.selectPackItem('${order.id}', ${idx})" class="cursor-pointer bg-white rounded-3xl border ${rowClass} shadow-soft overflow-hidden transition-all duration-200 relative group">
                                         <div class="p-4 flex gap-4 items-center">
-                                            <!-- Selection Indicator -->
+                                            <!-- Indicator -->
                                             <div class="shrink-0">
-                                                <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-blue-500 bg-blue-500 text-white' : 'border-slate-300 group-hover:border-blue-300'}">
-                                                    ${isSelected ? '<i data-lucide="check" class="w-4 h-4"></i>' : (isComplete ? '<i data-lucide="check" class="w-4 h-4 text-emerald-500"></i>' : '')}
+                                                <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-400 text-sm">
+                                                    ${idx + 1}
                                                 </div>
                                             </div>
                                             
                                             <div class="flex-1 min-w-0">
                                                 <div class="flex justify-between items-start mb-2">
-                                                    <h3 class="font-bold text-slate-800 text-base truncate pr-2 ${isSelected ? 'text-blue-700' : ''} leading-tight">${item.name}</h3>
-                                                    
-                                                    <!-- Controls -->
-                                                    <div class="flex items-center gap-3" onclick="event.stopPropagation()">
-                                                        <button onclick="app.logic.adjustPackQty('${order.id}', ${idx}, -1)" class="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 flex items-center justify-center transition-colors"><i data-lucide="minus" class="w-5 h-5"></i></button>
-                                                        <span class="text-2xl font-black w-10 text-center ${packedQty >= item.qty ? 'text-emerald-600' : 'text-blue-600'}">${packedQty}</span>
-                                                        <button onclick="app.logic.adjustPackQty('${order.id}', ${idx}, 1)" class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition-colors"><i data-lucide="plus" class="w-5 h-5"></i></button>
-                                                    </div>
+                                                    <h3 class="font-bold text-slate-800 text-sm truncate pr-2 ${isSelected ? 'text-blue-700' : ''} leading-tight">${item.name}</h3>
                                                 </div>
                                                 
                                                 <div class="flex items-center justify-between gap-2">
                                                     <div class="text-xs text-slate-400 font-mono flex items-center gap-2">
-                                                        <span class="bg-slate-50 px-2 py-1 rounded border border-slate-200"><i data-lucide="scan-barcode" class="w-3 h-3 inline mr-1"></i>${barcode}</span>
-                                                        ${inBoxQty > 0 ? `<span class="text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded border border-emerald-100 animate-pop">(+${inBoxQty} ในกล่องนี้)</span>` : ''}
+                                                        <i data-lucide="scan-barcode" class="w-3 h-3"></i> ${barcode}
                                                     </div>
                                                     
                                                     <!-- Order Quantity -->
-                                                    <div class="flex items-baseline gap-1 text-slate-500 text-xs">
-                                                        <span>สั่ง:</span>
-                                                        <span class="text-xl font-black text-black">${item.qty}</span>
-                                                        <span>${item.unit}</span>
+                                                    <div class="flex items-baseline gap-1">
+                                                        <span class="text-2xl font-black ${isSelected ? 'text-blue-600' : 'text-slate-800'}">${packedQty}</span>
+                                                        <span class="text-sm text-slate-400">/ ${item.qty}</span>
                                                     </div>
                                                 </div>
 
-                                                <div class="mt-3 relative h-2 bg-slate-100 rounded-full overflow-hidden">
-                                                    <div class="absolute top-0 left-0 h-full ${isComplete ? 'bg-emerald-500' : (isSelected ? 'bg-blue-500' : 'bg-slate-300')} progress-bar" style="width: ${percent}%"></div>
+                                                <div class="mt-2 relative h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                    <div class="absolute top-0 left-0 h-full bg-blue-500 progress-bar" style="width: ${percent}%"></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1419,6 +1433,7 @@
                     setTimeout(() => { document.getElementById('pack-scan-input')?.focus({preventScroll:true}); }, 50);
                 },
 
+                // *** NEW: SMART AUTO-FOCUS SCAN ***
                 scanPackItem(orderId, barcode) {
                     barcode = barcode.trim();
                     if(!barcode) return;
@@ -1436,6 +1451,7 @@
                     const inputEl = document.getElementById('pack-scan-input');
                     let itemIndex = -1;
                     
+                    // Lookup Product
                     const productInfo = app.data.products.find(p => p.barcode === barcode || p.sku === barcode);
                     if (productInfo) {
                         itemIndex = order.items.findIndex(i => i.sku === productInfo.sku);
@@ -1443,59 +1459,40 @@
                         itemIndex = order.items.findIndex(i => i.sku === barcode);
                     }
 
-                    const selectedIdx = app.session.selectedPackIndex;
-                    if (selectedIdx !== undefined && selectedIdx !== null) {
-                        if (itemIndex !== -1 && itemIndex !== selectedIdx) {
-                             app.ui.toast(`สินค้าไม่ตรงกับที่เลือก! (คุณเลือก: ${order.items[selectedIdx].name})`, 'error');
-                             if(inputEl) {
-                                inputEl.classList.add('bg-red-50', 'text-red-600', 'animate-shake');
-                                setTimeout(()=> inputEl.classList.remove('bg-red-50', 'text-red-600', 'animate-shake'), 500);
-                             }
-                             return;
-                        }
-                        if (itemIndex === -1) {
-                             app.ui.toast('ไม่พบสินค้านี้ (Wrong Item)', 'error');
-                             if(inputEl) {
-                                inputEl.classList.add('bg-red-50', 'text-red-600', 'animate-shake');
-                                setTimeout(()=> inputEl.classList.remove('bg-red-50', 'text-red-600', 'animate-shake'), 500);
-                             }
-                             return;
+                    // --- SMART FOCUS LOGIC ---
+                    if (itemIndex !== -1) {
+                        // AUTO SWITCH FOCUS to this item (No manual selection needed)
+                        app.session.selectedPackIndex = itemIndex;
+
+                        const item = order.items[itemIndex];
+                        const currentPacked = item.packed_qty || 0;
+
+                        if (currentPacked + multiplier > item.qty) {
+                            app.ui.toast(`จำนวนเกิน! (รับ: ${item.qty}, แพ็คแล้ว: ${currentPacked})`, 'warning');
+                            // Play Warning Sound logic can be added here
+                        } else {
+                            // Valid Scan: Increment
+                            item.packed_qty = currentPacked + multiplier;
+                            
+                            // Box Logic
+                            if (!order.active_box) order.active_box = { items: {}, total_qty: 0 };
+                            if (!order.active_box.items[item.sku]) order.active_box.items[item.sku] = 0;
+                            order.active_box.items[item.sku] += multiplier;
+                            order.active_box.total_qty += multiplier;
+
+                            app.saveData();
+                            // Optional: Play Success Sound
                         }
                     } else {
-                        if (itemIndex === -1) {
-                            app.ui.toast('ไม่พบสินค้านี้ในออเดอร์', 'error');
-                            if(inputEl) {
-                                inputEl.classList.add('bg-red-50', 'text-red-600', 'animate-shake');
-                                setTimeout(()=> inputEl.classList.remove('bg-red-50', 'text-red-600', 'animate-shake'), 500);
-                            }
-                            return;
-                        }
+                        // Not found in order
+                         app.ui.toast('ไม่พบสินค้านี้ในออเดอร์', 'error');
+                         if(inputEl) {
+                            inputEl.classList.add('bg-red-50', 'text-red-600', 'animate-shake');
+                            setTimeout(()=> inputEl.classList.remove('bg-red-50', 'text-red-600', 'animate-shake'), 500);
+                         }
                     }
 
-                    const item = order.items[itemIndex];
-                    const currentPacked = item.packed_qty || 0;
-
-                    if (currentPacked + multiplier > item.qty) {
-                        app.ui.toast(`จำนวนเกิน! (รับ: ${item.qty}, แพ็คแล้ว: ${currentPacked}, จะเพิ่ม: ${multiplier})`, 'warning');
-                        if(inputEl) {
-                            inputEl.classList.add('bg-orange-50', 'text-orange-600', 'animate-shake');
-                            setTimeout(()=> inputEl.classList.remove('bg-orange-50', 'text-orange-600', 'animate-shake'), 500);
-                        }
-                        return;
-                    }
-
-                    // Increment Global Packed Qty
-                    item.packed_qty = currentPacked + multiplier;
-                    
-                    // Increment Box Tracking Qty
-                    if (!order.active_box) order.active_box = { items: {}, total_qty: 0 };
-                    if (!order.active_box.items[item.sku]) order.active_box.items[item.sku] = 0;
-                    order.active_box.items[item.sku] += multiplier;
-                    order.active_box.total_qty += multiplier;
-
-                    app.saveData();
                     this.refreshDetail(orderId);
-                    app.ui.toast(`แพ็ค "${item.name}" เพิ่ม ${multiplier} ชิ้น`);
                     
                     // Re-focus without scrolling
                     setTimeout(() => { 
