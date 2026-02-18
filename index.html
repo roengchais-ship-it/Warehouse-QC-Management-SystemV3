@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Warehouse QC Enterprise v3.8 (Hide Completed)</title>
+    <title>Warehouse QC Enterprise v3.9 (Dropdown Search)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -113,7 +113,7 @@
                     <i data-lucide="package-check" class="w-8 h-8 text-white"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-800">Warehouse QC</h1>
-                <p class="text-sm text-slate-400">Enterprise Edition v3.8</p>
+                <p class="text-sm text-slate-400">Enterprise Edition v3.9</p>
             </div>
             <div class="space-y-4">
                 <div><label class="text-xs font-bold text-slate-500 mb-1.5 block ml-1">ชื่อผู้ใช้</label><input type="text" id="login-username" class="input-field w-full" placeholder="username"></div>
@@ -851,7 +851,7 @@
                                     const packedQty = item.packed_qty || 0;
                                     const isComplete = packedQty >= item.qty;
                                     
-                                    // Hide if complete
+                                    // *** NEW: HIDE COMPLETED ITEMS ***
                                     if (isComplete) return '';
 
                                     const productData = app.data.products.find(p => p.sku === item.sku); 
@@ -1222,8 +1222,13 @@
                     div.innerHTML = `
                         <div class="w-full"><input type="text" placeholder="SKU" value="${skuVal}" class="input-field w-full text-sm item-sku bg-slate-50 text-slate-600 font-mono" readonly tabindex="-1"></div>
                         <div class="w-full relative group-input">
-                            <input type="text" placeholder="พิมพ์ชื่อสินค้า..." value="${nameVal}" class="input-field w-full text-sm item-name font-bold focus:ring-2 focus:ring-blue-400" 
-                                   oninput="app.logic.searchProduct(this)" onfocus="app.logic.searchProduct(this)" onclick="this.select()" autocomplete="off">
+                            <div class="relative">
+                                <input type="text" placeholder="พิมพ์ชื่อสินค้า..." value="${nameVal}" class="input-field w-full text-sm item-name font-bold focus:ring-2 focus:ring-blue-400 pr-10" 
+                                    oninput="app.logic.searchProduct(this)" onfocus="app.logic.searchProduct(this)" onclick="this.select()" autocomplete="off">
+                                <button class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-500 p-1" onclick="this.previousElementSibling.focus(); app.logic.searchProduct(this.previousElementSibling, true)">
+                                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                                </button>
+                            </div>
                             <div class="suggestions-box absolute top-full left-0 w-full bg-white shadow-xl rounded-xl border border-slate-100 mt-1 max-h-60 overflow-y-auto hidden z-50"></div>
                         </div>
                         <div class="w-full"><input type="number" placeholder="0" value="${qtyVal}" class="input-field w-full text-center text-sm item-qty font-bold text-blue-600"></div>
@@ -1234,14 +1239,20 @@
                     lucide.createIcons(); 
                 },
 
-                searchProduct(input) {
+                searchProduct(input, force = false) {
                     const val = input.value.toLowerCase();
-                    const wrapper = input.parentElement;
-                    const box = wrapper.querySelector('.suggestions-box');
+                    const box = input.closest('.group-input').querySelector('.suggestions-box');
                     
-                    if (val.length < 1) { box.innerHTML = ''; box.classList.add('hidden'); return; }
+                    if (val.length < 1 && !force) { 
+                        box.innerHTML = ''; 
+                        box.classList.add('hidden'); 
+                        return; 
+                    }
 
-                    const matches = app.data.products.filter(p => p.name.toLowerCase().includes(val) || p.sku.toLowerCase().includes(val));
+                    let matches = app.data.products;
+                    if (val.length > 0) {
+                        matches = matches.filter(p => p.name.toLowerCase().includes(val) || p.sku.toLowerCase().includes(val));
+                    }
 
                     if (matches.length > 0) {
                         box.innerHTML = matches.map(p => `
@@ -1251,7 +1262,10 @@
                             </div>
                         `).join('');
                         box.classList.remove('hidden');
-                    } else { box.innerHTML = `<div class="p-3 text-xs text-slate-400 text-center">ไม่พบสินค้า</div>`; box.classList.remove('hidden'); }
+                    } else { 
+                        box.innerHTML = `<div class="p-3 text-xs text-slate-400 text-center">ไม่พบสินค้า</div>`; 
+                        box.classList.remove('hidden'); 
+                    }
                 },
 
                 selectProduct(element, sku, name) {
