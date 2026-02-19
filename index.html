@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Warehouse QC Enterprise v3.14 (Fix ReferenceError)</title>
+    <title>Warehouse QC Enterprise v3.16 (Prominent Scan Display)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -43,7 +43,7 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); } 20%, 40%, 60%, 80% { transform: translateX(5px); } }
-        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
@@ -113,7 +113,7 @@
                     <i data-lucide="package-check" class="w-8 h-8 text-white"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-800">Warehouse QC</h1>
-                <p class="text-sm text-slate-400">Enterprise Edition v3.14</p>
+                <p class="text-sm text-slate-400">Enterprise Edition v3.16</p>
             </div>
             <div class="space-y-4">
                 <div><label class="text-xs font-bold text-slate-500 mb-1.5 block ml-1">ชื่อผู้ใช้</label><input type="text" id="login-username" class="input-field w-full" placeholder="username"></div>
@@ -153,7 +153,7 @@
                 <button onclick="app.auth.logout()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-50 transition-all">
                     <i data-lucide="log-out" class="w-5 h-5"></i> ออกจากระบบ
                 </button>
-                <p class="text-[10px] text-slate-400 text-center mt-3 font-mono">v3.14 (Enterprise)</p>
+                <p class="text-[10px] text-slate-400 text-center mt-3 font-mono">v3.16 (Enterprise)</p>
             </div>
         </aside>
 
@@ -849,14 +849,24 @@
                             const barcode = productData ? productData.barcode : (item.sku || '-');
                             
                             scannedItemCard = `
-                                <div class="bg-blue-600 rounded-2xl p-6 mb-4 shadow-xl text-white transform transition-all animate-pop">
-                                    <div class="flex justify-between items-start mb-2">
-                                        <span class="bg-white/20 px-3 py-1 rounded-lg text-sm font-bold backdrop-blur-sm">📦 กำลังแพ็ค</span>
-                                        <span class="text-2xl font-black">${item.packed_qty} / ${item.qty}</span>
+                                <div class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-3xl p-6 mb-6 shadow-2xl text-white transform transition-all animate-pop border-4 border-white/20 relative overflow-hidden">
+                                    <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+                                    
+                                    <div class="flex justify-between items-start mb-4 relative z-10">
+                                        <span class="bg-white/20 px-4 py-1.5 rounded-xl text-sm font-bold backdrop-blur-md flex items-center gap-2 shadow-sm">
+                                            <i data-lucide="box" class="w-4 h-4"></i> กำลังแพ็ค
+                                        </span>
+                                        <div class="text-right">
+                                            <span class="block text-xs opacity-70 mb-1">จำนวนที่ต้องแพ็ค</span>
+                                            <span class="text-4xl font-black tracking-tighter">${item.packed_qty} <span class="text-xl opacity-60 font-normal">/ ${item.qty}</span></span>
+                                        </div>
                                     </div>
-                                    <h2 class="text-2xl font-bold leading-tight mb-2">${item.name}</h2>
-                                    <div class="flex items-center gap-2 opacity-80 font-mono text-sm">
-                                        <i data-lucide="scan-barcode" class="w-4 h-4"></i> ${barcode}
+                                    
+                                    <h2 class="text-3xl lg:text-4xl font-black leading-tight mb-3 drop-shadow-md relative z-10">${item.name}</h2>
+                                    
+                                    <div class="flex items-center gap-3 opacity-90 font-mono text-sm bg-black/20 w-fit px-3 py-2 rounded-lg relative z-10">
+                                        <i data-lucide="scan-barcode" class="w-5 h-5 text-yellow-300"></i> 
+                                        <span class="tracking-widest font-bold">${barcode}</span>
                                     </div>
                                 </div>
                             `;
@@ -927,6 +937,7 @@
                                     
                                     return `
                                     <div id="pack-item-${idx}" onclick="app.logic.selectPackItem('${order.id}', ${idx})" class="cursor-pointer bg-white rounded-3xl border ${rowClass} shadow-soft overflow-hidden transition-all duration-200 relative group">
+                                        ${isSelected ? '<div class="absolute top-0 right-0 bg-blue-500 text-white text-[10px] px-2 py-1 rounded-bl-xl font-bold z-10">LOCKED</div>' : ''}
                                         <div class="p-4 flex gap-4 items-center">
                                             <!-- Indicator -->
                                             <div class="shrink-0">
@@ -1476,6 +1487,7 @@
                     setTimeout(() => { document.getElementById('pack-scan-input')?.focus({preventScroll:true}); }, 50);
                 },
 
+                // *** NEW: SMART AUTO-FOCUS SCAN ***
                 scanPackItem(orderId, barcode) {
                     barcode = barcode.trim();
                     if(!barcode) return;
@@ -1493,6 +1505,7 @@
                     const inputEl = document.getElementById('pack-scan-input');
                     let itemIndex = -1;
                     
+                    // Lookup Product
                     const productInfo = app.data.products.find(p => p.barcode === barcode || p.sku === barcode);
                     if (productInfo) {
                         itemIndex = order.items.findIndex(i => i.sku === productInfo.sku);
@@ -1500,59 +1513,40 @@
                         itemIndex = order.items.findIndex(i => i.sku === barcode);
                     }
 
-                    const selectedIdx = app.session.selectedPackIndex;
-                    if (selectedIdx !== undefined && selectedIdx !== null) {
-                        if (itemIndex !== -1 && itemIndex !== selectedIdx) {
-                             app.ui.toast(`สินค้าไม่ตรงกับที่เลือก! (คุณเลือก: ${order.items[selectedIdx].name})`, 'error');
-                             if(inputEl) {
-                                inputEl.classList.add('bg-red-50', 'text-red-600', 'animate-shake');
-                                setTimeout(()=> inputEl.classList.remove('bg-red-50', 'text-red-600', 'animate-shake'), 500);
-                             }
-                             return;
-                        }
-                        if (itemIndex === -1) {
-                             app.ui.toast('ไม่พบสินค้านี้ (Wrong Item)', 'error');
-                             if(inputEl) {
-                                inputEl.classList.add('bg-red-50', 'text-red-600', 'animate-shake');
-                                setTimeout(()=> inputEl.classList.remove('bg-red-50', 'text-red-600', 'animate-shake'), 500);
-                             }
-                             return;
+                    // --- SMART FOCUS LOGIC ---
+                    if (itemIndex !== -1) {
+                        // AUTO SWITCH FOCUS to this item (No manual selection needed)
+                        app.session.selectedPackIndex = itemIndex;
+
+                        const item = order.items[itemIndex];
+                        const currentPacked = item.packed_qty || 0;
+
+                        if (currentPacked + multiplier > item.qty) {
+                            app.ui.toast(`จำนวนเกิน! (รับ: ${item.qty}, แพ็คแล้ว: ${currentPacked})`, 'warning');
+                            // Play Warning Sound logic can be added here
+                        } else {
+                            // Valid Scan: Increment
+                            item.packed_qty = currentPacked + multiplier;
+                            
+                            // Box Logic
+                            if (!order.active_box) order.active_box = { items: {}, total_qty: 0 };
+                            if (!order.active_box.items[item.sku]) order.active_box.items[item.sku] = 0;
+                            order.active_box.items[item.sku] += multiplier;
+                            order.active_box.total_qty += multiplier;
+
+                            app.saveData();
+                            // Optional: Play Success Sound
                         }
                     } else {
-                        if (itemIndex === -1) {
-                            app.ui.toast('ไม่พบสินค้านี้ในออเดอร์', 'error');
-                            if(inputEl) {
-                                inputEl.classList.add('bg-red-50', 'text-red-600', 'animate-shake');
-                                setTimeout(()=> inputEl.classList.remove('bg-red-50', 'text-red-600', 'animate-shake'), 500);
-                            }
-                            return;
-                        }
+                        // Not found in order
+                         app.ui.toast('ไม่พบสินค้านี้ในออเดอร์', 'error');
+                         if(inputEl) {
+                            inputEl.classList.add('bg-red-50', 'text-red-600', 'animate-shake');
+                            setTimeout(()=> inputEl.classList.remove('bg-red-50', 'text-red-600', 'animate-shake'), 500);
+                         }
                     }
 
-                    const item = order.items[itemIndex];
-                    const currentPacked = item.packed_qty || 0;
-
-                    if (currentPacked + multiplier > item.qty) {
-                        app.ui.toast(`จำนวนเกิน! (รับ: ${item.qty}, แพ็คแล้ว: ${currentPacked}, จะเพิ่ม: ${multiplier})`, 'warning');
-                        if(inputEl) {
-                            inputEl.classList.add('bg-orange-50', 'text-orange-600', 'animate-shake');
-                            setTimeout(()=> inputEl.classList.remove('bg-orange-50', 'text-orange-600', 'animate-shake'), 500);
-                        }
-                        return;
-                    }
-
-                    // Increment Global Packed Qty
-                    item.packed_qty = currentPacked + multiplier;
-                    
-                    // Increment Box Tracking Qty
-                    if (!order.active_box) order.active_box = { items: {}, total_qty: 0 };
-                    if (!order.active_box.items[item.sku]) order.active_box.items[item.sku] = 0;
-                    order.active_box.items[item.sku] += multiplier;
-                    order.active_box.total_qty += multiplier;
-
-                    app.saveData();
                     this.refreshDetail(orderId);
-                    app.ui.toast(`แพ็ค "${item.name}" เพิ่ม ${multiplier} ชิ้น`);
                     
                     // Re-focus without scrolling
                     setTimeout(() => { 
@@ -1737,61 +1731,6 @@
                         </body>
                         </html>
                     `);
-                    doc.close();
-                },
-                
-                printPackingList(orderId) {
-                    const order = app.data.orders.find(o => o.id === orderId);
-                    if(!order.boxes || order.boxes.length === 0) return app.ui.toast('ยังไม่มีข้อมูลกล่องให้พิมพ์', 'error');
-
-                    const dateStr = new Date().toLocaleString('th-TH');
-                    
-                    let boxesHtml = '';
-                    order.boxes.forEach((box, i) => {
-                        let itemsHtml = '';
-                        Object.entries(box.items).forEach(([sku, qty]) => {
-                             const p = app.data.products.find(x => x.sku === sku);
-                             itemsHtml += `<tr class="border-b border-gray-200 text-sm"><td class="py-1">${p ? p.name : sku}</td><td class="py-1 text-right font-bold">${qty}</td></tr>`;
-                        });
-                        boxesHtml += `
-                            <div class="mb-6 border border-gray-300 rounded-lg p-4 break-inside-avoid">
-                                <div class="flex justify-between border-b-2 border-gray-800 pb-2 mb-2 font-bold text-lg">
-                                    <span>BOX ${i+1}</span>
-                                    <span>${box.total_qty} ชิ้น</span>
-                                </div>
-                                <table class="w-full">${itemsHtml}</table>
-                            </div>
-                        `;
-                    });
-
-                    const html = `
-                        <div class="max-w-3xl mx-auto p-6 bg-white text-black">
-                            <div class="text-center border-b-2 border-black pb-4 mb-6">
-                                <h1 class="text-2xl font-bold">ใบรายการแพ็คสินค้า (Packing List)</h1>
-                                <div class="flex justify-between mt-4 text-sm">
-                                    <div class="text-left"><b>ลูกค้า:</b> ${order.customer}</div>
-                                    <div class="text-right"><b>เลขที่:</b> ${order.docNo}<br><b>วันที่:</b> ${dateStr}</div>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                ${boxesHtml}
-                            </div>
-                            <div class="mt-8 pt-4 border-t border-gray-300 text-center text-xs text-gray-500">
-                                ผู้ตรวจสอบ: ${app.currentUser.name} (รวม ${order.boxes.length} กล่อง)
-                            </div>
-                        </div>
-                    `;
-                    
-                    let frame = document.getElementById('print-frame');
-                    if(!frame) {
-                        frame = document.createElement('iframe');
-                        frame.id = 'print-frame';
-                        frame.style.display = 'none';
-                        document.body.appendChild(frame);
-                    }
-                    const doc = frame.contentWindow.document;
-                    doc.open();
-                    doc.write(`<html><head><title>Packing List</title><script src="https://cdn.tailwindcss.com"><\/script><link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap" rel="stylesheet"><style>body{font-family:'Sarabun';}</style></head><body>${html}<script>setTimeout(()=>{window.print()},800)<\/script></body></html>`);
                     doc.close();
                 },
 
