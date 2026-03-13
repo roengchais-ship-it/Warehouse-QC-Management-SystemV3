@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Warehouse QC Enterprise v3.16 (Prominent Scan Display)</title>
+    <title>Warehouse QC Enterprise v3.17 (Manager Edit Mode)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -113,7 +113,7 @@
                     <i data-lucide="package-check" class="w-8 h-8 text-white"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-800">Warehouse QC</h1>
-                <p class="text-sm text-slate-400">Enterprise Edition v3.16</p>
+                <p class="text-sm text-slate-400">Enterprise Edition v3.17</p>
             </div>
             <div class="space-y-4">
                 <div><label class="text-xs font-bold text-slate-500 mb-1.5 block ml-1">ชื่อผู้ใช้</label><input type="text" id="login-username" class="input-field w-full" placeholder="username"></div>
@@ -121,7 +121,7 @@
                 <button onclick="app.auth.login()" class="btn-main btn-blue mt-6 shadow-lg shadow-blue-200">เข้าใช้งาน</button>
             </div>
         </div>
-        <p class="mt-8 text-xs text-slate-400">รหัสเริ่มต้น: 1234</p>
+        <p class="mt-8 text-xs text-slate-400">รหัสเริ่มต้น: 1234 (manager: 1234)</p>
     </div>
 
     <!-- Header -->
@@ -153,7 +153,7 @@
                 <button onclick="app.auth.logout()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-50 transition-all">
                     <i data-lucide="log-out" class="w-5 h-5"></i> ออกจากระบบ
                 </button>
-                <p class="text-[10px] text-slate-400 text-center mt-3 font-mono">v3.16 (Enterprise)</p>
+                <p class="text-[10px] text-slate-400 text-center mt-3 font-mono">v3.17 (Enterprise)</p>
             </div>
         </aside>
 
@@ -183,7 +183,7 @@
         };
         // ----------------------------------
         
-        const appId = 'warehouse-qc-main'; // ตั้งชื่อ App ID ที่นี่
+        const appId = 'warehouse-qc-main';
 
         // Global Firebase Handler
         window.firebaseHandler = {
@@ -193,7 +193,6 @@
             init: async () => {
                 const statusEl = document.getElementById('cloud-status');
                 
-                // 1. Check Internet Connection
                 if (!navigator.onLine) {
                      if(statusEl) statusEl.innerHTML = '<span class="text-slate-400"><i data-lucide="wifi-off" class="w-3 h-3 inline"></i> Offline Mode</span>';
                      lucide.createIcons();
@@ -209,33 +208,11 @@
                      lucide.createIcons();
                 });
 
-                // 2. Check Config Validation
                 if (firebaseConfig.apiKey === "YOUR_API_KEY_HERE") {
                     console.warn("Firebase Config not setup.");
                     if(statusEl) {
                         statusEl.innerHTML = '<span class="text-slate-500 flex items-center gap-1"><i data-lucide="hard-drive" class="w-3 h-3"></i> Local Mode (No Sync)</span>';
                         lucide.createIcons();
-                    }
-                    
-                    // Show Setup Guide Modal once
-                    if(!localStorage.getItem('hide_setup_guide')) {
-                         setTimeout(() => {
-                             if(window.app && window.app.ui) {
-                                 window.app.ui.modalHTML("การตั้งค่า GitHub / Firebase", `
-                                    <div class="text-sm text-slate-600">
-                                        <p class="mb-2">คุณกำลังรันไฟล์นี้บน GitHub หรือเครื่องตัวเอง</p>
-                                        <p class="mb-2">เพื่อให้ระบบ Cloud Sync ทำงาน (ข้อมูลเด้งไปเครื่องอื่น) คุณต้อง:</p>
-                                        <ol class="list-decimal pl-5 space-y-1 mb-4">
-                                            <li>ไปที่ <a href="https://console.firebase.google.com" target="_blank" class="text-blue-500 underline font-bold">Firebase Console</a></li>
-                                            <li>สร้าง Project ใหม่ และเพิ่ม Web App</li>
-                                            <li>คัดลอก <b>firebaseConfig</b> มาแทนที่ในบรรทัดที่ 266 ของไฟล์นี้</li>
-                                            <li>เปิดใช้งาน <b>Firestore Database</b> และ <b>Authentication</b> (Anonymous) ใน Firebase Console</li>
-                                        </ol>
-                                        <p class="text-xs text-slate-400 bg-slate-100 p-2 rounded">ตอนนี้ระบบจะทำงานแบบ Offline (ข้อมูลบันทึกในเครื่องนี้เท่านั้น)</p>
-                                    </div>
-                                `, () => { localStorage.setItem('hide_setup_guide', 'true'); }, "เข้าใจแล้ว");
-                             }
-                         }, 1000);
                     }
                     return;
                 }
@@ -246,7 +223,6 @@
                     const db = getFirestore(app);
                     window.firebaseHandler.db = db;
                     
-                    // Try to use provided initial auth token if available, otherwise anonymous
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                         try {
                              await signInWithCustomToken(auth, __initial_auth_token);
@@ -281,22 +257,17 @@
                                         
                                         if(window.app.currentUser) {
                                             window.app.updateBadges();
-                                            // *** FIX: Use refreshDetail logic to prevent jumps if already on page ***
-                                            // Only hard reload if not on a detail page or if page is empty
                                             const main = document.getElementById('main-view');
                                             if(main && main.innerHTML !== "") {
                                                 if(window.app.currentPage === 'detail' && window.app.currentParam) {
-                                                    // Soft update for detail page (keep scroll)
                                                     window.app.logic.refreshDetail(window.app.currentParam);
                                                 } else {
-                                                    // Standard update for other pages
                                                     window.app.router(window.app.currentPage, window.app.currentParam);
                                                 }
                                             }
                                         }
                                     } 
                                 } else {
-                                    // Initialize Cloud if empty
                                     window.firebaseHandler.save(window.app.data);
                                 }
                             }, (error) => {
@@ -321,12 +292,8 @@
                     }
                     
                     setDoc(window.firebaseHandler.docRef, JSON.parse(JSON.stringify(data)))
-                        .then(() => {
-                            // Status will revert on snapshot update
-                        })
-                        .catch(err => {
-                            console.error("Save error", err);
-                        });
+                        .then(() => {})
+                        .catch(err => { console.error("Save error", err); });
                 }
             }
         };
@@ -364,7 +331,6 @@
             session: {}, 
             
             init() {
-                // Initialize Auth UI
                 ['login-username', 'login-password'].forEach(id => {
                     const el = document.getElementById(id);
                     if(el) {
@@ -374,10 +340,8 @@
                     }
                 });
                 
-                // Initialize Data from LocalStorage FIRST (Instant load)
                 this.loadDataLocal();
 
-                // Check Session
                 const sessionUser = localStorage.getItem('warehouse_session_user');
                 if (sessionUser) { 
                     this.currentUser = JSON.parse(sessionUser); 
@@ -402,14 +366,10 @@
             },
 
             saveData() {
-                // 1. Always save locally (Backup & Speed)
                 this.saveLocal();
-
-                // 2. Try to save to Cloud
                 if(window.firebaseHandler && window.firebaseHandler.docRef) {
                     window.firebaseHandler.save(this.data);
                 }
-                
                 this.updateBadges();
             },
 
@@ -591,11 +551,16 @@
                             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all group relative overflow-hidden">
                                 <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-100 transition-opacity"><i data-lucide="package" class="w-16 h-16 text-purple-600"></i></div>
                                 
-                                <button onclick="app.logic.deleteProduct('${p.sku}')" class="absolute top-3 right-3 z-20 p-2 bg-white/50 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-lg transition-colors border border-transparent hover:border-red-100">
-                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                </button>
+                                <div class="absolute top-3 right-3 z-20 flex gap-2">
+                                    <button onclick="app.logic.openEditProductModal('${p.sku}')" class="p-2 bg-white/50 hover:bg-orange-50 text-slate-400 hover:text-orange-500 rounded-lg transition-colors border border-transparent hover:border-orange-100" title="แก้ไข">
+                                        <i data-lucide="edit" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="app.logic.deleteProduct('${p.sku}')" class="p-2 bg-white/50 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-lg transition-colors border border-transparent hover:border-red-100" title="ลบ">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
 
-                                <div class="relative z-10 pr-8">
+                                <div class="relative z-10 pr-16">
                                     <div class="flex items-start justify-between mb-2">
                                         <span class="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-1 rounded border border-slate-200">SKU: ${p.sku}</span>
                                     </div>
@@ -722,7 +687,6 @@
                     const order = app.data.orders.find(o => o.id === id);
                     if (!order) return app.router('dashboard');
                     
-                    // Init Box Tracking
                     if (!order.boxes) order.boxes = [];
                     if (!order.active_box) order.active_box = { items: {}, total_qty: 0 };
 
@@ -738,7 +702,6 @@
                         if (canEdit) footer = `<button onclick="app.logic.submitQC('${id}')" class="btn-main btn-rose">บันทึกผล QC</button>`;
                     } else if (order.status === 'pending_pack') {
                         content = this.renderPackContent(order, canEdit);
-                        // CHANGED: Side-by-side buttons for printing and confirming
                         footer = `<div class="flex gap-3 items-stretch">
                              <button class="w-24 px-2 btn-grey rounded-2xl font-bold flex flex-col items-center justify-center gap-1 text-[10px] text-slate-500 active:scale-95 transition-transform" onclick="app.logic.printPackingList('${order.id}')">
                                 <i data-lucide="printer" class="w-5 h-5"></i>
@@ -838,10 +801,8 @@
                         const currentBoxNum = (order.boxes ? order.boxes.length : 0) + 1;
                         const itemsInCurrentBox = order.active_box ? order.active_box.total_qty : 0;
                         
-                        // Check if all items complete
                         const allComplete = order.items.every(i => (i.packed_qty || 0) >= i.qty);
 
-                        // Last Scanned Item Card (The big top card)
                         let scannedItemCard = '';
                         if (app.session.selectedPackIndex !== null && app.session.selectedPackIndex !== undefined) {
                             const item = order.items[app.session.selectedPackIndex];
@@ -921,17 +882,14 @@
                                     const packedQty = item.packed_qty || 0;
                                     const isComplete = packedQty >= item.qty;
                                     
-                                    // *** AUTO HIDE COMPLETED ITEMS ***
                                     if (isComplete) return '';
 
                                     const productData = app.data.products.find(p => p.sku === item.sku); 
                                     const barcode = productData ? productData.barcode : (item.sku || '-');
                                     const percent = Math.min(100, Math.round((packedQty / item.qty) * 100));
                                     
-                                    // Current box qty for this item
                                     const inBoxQty = (order.active_box && order.active_box.items && order.active_box.items[item.sku]) || 0;
 
-                                    // Focus Mode Logic
                                     const isSelected = app.session.selectedPackIndex === idx;
                                     const rowClass = isSelected ? 'ring-4 ring-blue-400 bg-blue-50/50 transform scale-[1.01]' : 'border-slate-100';
                                     
@@ -982,7 +940,6 @@
                             </div>
                         </div>`;
                     } else {
-                        // Read-only view for finished pack
                         mainContent = `<div class="space-y-4">
                             <div class="bg-slate-800 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between">
                                 <div><div class="text-xs opacity-70 uppercase tracking-widest">จำนวนกล่องทั้งหมด</div><div class="text-2xl font-bold">${order.boxes ? order.boxes.length : 0} กล่อง</div></div>
@@ -1013,12 +970,12 @@
                                     </h3>
                                     <div class="space-y-3 max-h-[calc(100vh-200px)] overflow-y-auto pr-1">
                                         ${order.boxes.map((box, index) => `
-                                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 hover:bg-white hover:shadow-md transition-all group">
+                                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 hover:bg-white hover:shadow-md transition-all group flex flex-col h-full">
                                                 <div class="flex justify-between items-center mb-2">
                                                     <span class="font-bold text-slate-800 text-sm">กล่องที่ ${index + 1}</span>
                                                     <span class="text-[10px] font-bold bg-white border border-slate-200 text-slate-500 px-2 py-0.5 rounded-lg shadow-sm">${box.total_qty} ชิ้น</span>
                                                 </div>
-                                                <div class="space-y-1 mb-3">
+                                                <div class="space-y-1 mb-2 flex-1">
                                                     ${Object.entries(box.items).map(([sku, qty]) => {
                                                         const prod = app.data.products.find(p => p.sku === sku);
                                                         return `<div class="flex justify-between text-[10px] text-slate-500">
@@ -1027,9 +984,21 @@
                                                         </div>`;
                                                     }).join('')}
                                                 </div>
-                                                <button onclick="app.logic.openPrintLabelModal('${order.id}', ${index})" class="w-full py-2 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs font-bold hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 transition-colors flex items-center justify-center gap-1.5 opacity-60 group-hover:opacity-100">
-                                                    <i data-lucide="printer" class="w-3 h-3"></i> พิมพ์ Label
-                                                </button>
+                                                
+                                                ${app.currentUser.role === 'manager' && canEdit ? `
+                                                    <div class="flex gap-2 mt-auto">
+                                                        <button onclick="app.logic.openPrintLabelModal('${order.id}', ${index})" class="flex-1 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 text-[10px] font-bold hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 transition-colors flex items-center justify-center gap-1 opacity-80 group-hover:opacity-100">
+                                                            <i data-lucide="printer" class="w-3 h-3"></i> Label
+                                                        </button>
+                                                        <button onclick="app.logic.openEditBoxModal('${order.id}', ${index})" class="flex-1 py-1.5 rounded-lg bg-white border border-orange-200 text-orange-600 text-[10px] font-bold hover:text-orange-700 hover:border-orange-300 hover:bg-orange-50 transition-colors flex items-center justify-center gap-1 opacity-80 group-hover:opacity-100">
+                                                            <i data-lucide="edit" class="w-3 h-3"></i> รื้อกล่อง
+                                                        </button>
+                                                    </div>
+                                                ` : `
+                                                    <button onclick="app.logic.openPrintLabelModal('${order.id}', ${index})" class="mt-auto w-full py-2 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs font-bold hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 transition-colors flex items-center justify-center gap-1.5 opacity-60 group-hover:opacity-100">
+                                                        <i data-lucide="printer" class="w-3 h-3"></i> พิมพ์ Label
+                                                    </button>
+                                                `}
                                             </div>
                                         `).join('')}
                                     </div>
@@ -1063,7 +1032,6 @@
                     `, () => this.processInventoryImport(), 'นำเข้าข้อมูล');
                 },
 
-                // *** NEW: Add Product Modal Logic ***
                 openAddProductModal() {
                     const html = `
                         <div class="space-y-4">
@@ -1090,19 +1058,72 @@
                             return app.ui.toast('กรุณากรอก SKU และชื่อสินค้า', 'error');
                         }
                         
-                        // Check duplicate SKU
                         if(app.data.products.some(p => p.sku === sku)) {
                             return app.ui.toast('SKU นี้มีอยู่แล้วในระบบ', 'error');
                         }
 
                         app.data.products.push({ sku, name, barcode });
                         app.saveData();
-                        app.views.renderInventoryList(); // Refresh list if currently on inventory page
+                        app.views.renderInventoryList();
                         app.ui.toast('เพิ่มสินค้าเรียบร้อยแล้ว');
                     }, 'บันทึก');
                 },
                 
-                // *** NEW: Delete Product Logic ***
+                openEditProductModal(oldSku) {
+                    const product = app.data.products.find(p => p.sku === oldSku);
+                    if(!product) return;
+
+                    const safeName = product.name.replace(/"/g, '&quot;');
+                    const safeBarcode = product.barcode ? product.barcode.replace(/"/g, '&quot;') : '';
+
+                    const html = `
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 mb-1 block">SKU <span class="text-red-500">*</span></label>
+                                <input type="text" id="edit-prod-sku" class="input-field w-full" value="${product.sku}">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 mb-1 block">ชื่อสินค้า <span class="text-red-500">*</span></label>
+                                <input type="text" id="edit-prod-name" class="input-field w-full" value="${safeName}">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 mb-1 block">บาร์โค้ด</label>
+                                <input type="text" id="edit-prod-barcode" class="input-field w-full" value="${safeBarcode}">
+                            </div>
+                        </div>
+                    `;
+
+                    app.ui.modalHTML('แก้ไขข้อมูลสินค้า', html, () => {
+                        const newSku = document.getElementById('edit-prod-sku').value.trim();
+                        const newName = document.getElementById('edit-prod-name').value.trim();
+                        const newBarcode = document.getElementById('edit-prod-barcode').value.trim();
+                        
+                        if(!newSku || !newName) {
+                            return app.ui.toast('กรุณากรอก SKU และชื่อสินค้า', 'error');
+                        }
+                        
+                        // Check if new SKU already exists (and is not the same as old SKU)
+                        if(newSku !== oldSku && app.data.products.some(p => p.sku === newSku)) {
+                            return app.ui.toast('SKU นี้มีอยู่แล้วในระบบ', 'error');
+                        }
+
+                        const index = app.data.products.findIndex(p => p.sku === oldSku);
+                        if(index !== -1) {
+                            app.data.products[index] = { sku: newSku, name: newName, barcode: newBarcode };
+                            app.saveData();
+                            app.views.renderInventoryList();
+                            app.ui.toast('อัปเดตข้อมูลสินค้าสำเร็จ');
+                        }
+                    }, 'บันทึกการแก้ไข');
+                    
+                    setTimeout(() => {
+                        const btn = document.getElementById('modal-confirm');
+                        if(btn) {
+                            btn.className = "px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-orange-200 transition-colors";
+                        }
+                    }, 50);
+                },
+
                 deleteProduct(sku) {
                     const product = app.data.products.find(p => p.sku === sku);
                     if(!product) return;
@@ -1123,7 +1144,6 @@
                         app.ui.toast('ลบสินค้าสำเร็จ');
                     }, 'ลบสินค้า');
                     
-                    // Style the confirm button to red
                     setTimeout(() => {
                         const btn = document.getElementById('modal-confirm');
                         if(btn) {
@@ -1132,9 +1152,7 @@
                     }, 50);
                 },
                 
-                // *** NEW: Delete Order Logic (For History) ***
                 deleteOrder(id) {
-                    // Confirmation logic
                      app.ui.modalHTML('ยืนยันการลบ', `
                         <div class="text-center py-4">
                             <div class="mx-auto w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-3">
@@ -1259,7 +1277,6 @@
                                         const qty = parseInt(lastPart.replace(/,/g, ''));
                                         let name = parts.length > 2 ? parts[1].trim() : '';
                                         
-                                        // FIX: Robust Lookup
                                         const masterProd = app.data.products.find(p => p.sku.toLowerCase() === sku.toLowerCase());
                                         if (masterProd) name = masterProd.name;
 
@@ -1295,7 +1312,6 @@
                                     let name = row[nameKey];
                                     const qty = row[qtyKey];
                                     
-                                    // Fix Lookup here too
                                     if(sku) {
                                         const masterProd = app.data.products.find(p => p.sku.toLowerCase() === sku.toLowerCase());
                                         if (masterProd) name = masterProd.name;
@@ -1380,17 +1396,12 @@
                     const nextId = `input-qty-${nextItemIdx}-0`;
                     this.nextFocusTarget = nextId;
                     
-                    // Trigger Update
                     el.blur(); 
                     
                     const order = app.data.orders.find(o => o.id === orderId);
                     if(order && nextItemIdx < order.items.length) {
                         const nextItem = order.items[nextItemIdx];
-                        // If next item has no picks, add one
                         if(!nextItem.picks || nextItem.picks.length === 0) {
-                           // This logic relies on updatePick -> refreshDetail
-                           // But since updatePick is async/callback based, we might need to force add pick here?
-                           // Actually, addPick will save and re-render.
                            app.logic.addPick(orderId, nextItemIdx);
                         }
                     }
@@ -1402,7 +1413,7 @@
                              nextEl.select();
                              this.nextFocusTarget = null;
                         }
-                    }, 100); // Increased timeout slightly for re-render
+                    }, 100);
                 },
 
                 handleQCEnter(el, idx, type) {
@@ -1424,13 +1435,11 @@
                 refreshDetail(id) {
                     const main = document.getElementById('main-view');
                     const scroller = document.getElementById('detail-scroller');
-                    // Capture active element before render
                     const activeId = document.activeElement ? document.activeElement.id : null;
                     const savedScroll = scroller ? scroller.scrollTop : 0;
                     
                     app.views.renderDetail(main, id);
                     
-                    // Prevent Jumpy Animation on Refresh
                     if(main.firstElementChild) {
                         main.firstElementChild.classList.remove('animate-slide-in-right');
                     }
@@ -1438,7 +1447,6 @@
                     const newScroller = document.getElementById('detail-scroller');
                     if(newScroller) newScroller.scrollTop = savedScroll;
 
-                    // Smart Focus Restoration
                     if (app.logic.nextFocusTarget) {
                         const nextEl = document.getElementById(app.logic.nextFocusTarget);
                         if (nextEl) { nextEl.focus({preventScroll:true}); nextEl.select(); }
@@ -1466,17 +1474,70 @@
                     const newOrder = { id: `ORD-${Date.now().toString().slice(-4)}`, docNo, customer, date: dateStr, status: 'pending_stock', items, logs: [{ action: 'สร้างออเดอร์', time: new Date().toLocaleString('th-TH'), user: app.currentUser.name }] }; 
                     app.data.orders.unshift(newOrder); app.saveData(); app.router('stock'); app.ui.toast('สร้างออเดอร์สำเร็จ'); 
                 },
-                togglePacked(id, itemIdx) {
-                    if(app.currentUser.role !== 'pack' && app.currentUser.role !== 'manager') return;
-                    const order = app.data.orders.find(o => o.id === id);
-                    if(order) {
-                        if(order.items[itemIdx].packed === undefined) order.items[itemIdx].packed = false;
-                        order.items[itemIdx].packed = !order.items[itemIdx].packed;
-                        app.saveData();
-                        this.refreshDetail(id);
-                    }
+
+                // *** NEW: Edit / Delete Box function for Manager ***
+                openEditBoxModal(orderId, boxIdx) {
+                    const order = app.data.orders.find(o => o.id === orderId);
+                    const box = order.boxes[boxIdx];
+
+                    const itemsHtml = Object.entries(box.items).map(([sku, qty]) => {
+                        const prod = app.data.products.find(p => p.sku === sku);
+                        const name = prod ? prod.name : sku;
+                        return `
+                            <div class="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+                                <div class="flex-1 pr-4">
+                                    <div class="text-sm font-bold text-slate-700">${name}</div>
+                                    <div class="text-[10px] text-slate-400 font-mono">${sku}</div>
+                                </div>
+                                <div class="text-base font-black text-slate-700 w-12 text-right">x${qty}</div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    const html = `
+                        <div class="space-y-4">
+                            <div class="bg-orange-50 p-4 rounded-xl border border-orange-100 text-orange-700 text-xs">
+                                การแก้ไขกล่องจะทำโดยการ <b>"รื้อกล่อง" (Unpack)</b> <br>สินค้าทั้งหมดในกล่องนี้จะถูกนำกลับไปอยู่ในสถานะรอแพ็คใหม่
+                            </div>
+                            <div class="max-h-60 overflow-y-auto pr-1 bg-white p-3 rounded-xl border border-slate-200 shadow-inner">
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-100 pb-2">รายการสินค้าในกล่อง</p>
+                                ${itemsHtml}
+                            </div>
+                        </div>
+                    `;
+
+                    app.ui.modalHTML(`แก้ไข/รื้อกล่องที่ ${boxIdx + 1}`, html, () => {
+                        app.logic.deleteBox(orderId, boxIdx);
+                    }, 'ยืนยันรื้อกล่องนี้');
+
+                    setTimeout(() => {
+                        const btn = document.getElementById('modal-confirm');
+                        if(btn) {
+                            btn.className = "px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-orange-200 transition-colors";
+                        }
+                    }, 50);
                 },
-                
+
+                deleteBox(orderId, boxIdx) {
+                    const order = app.data.orders.find(o => o.id === orderId);
+                    const box = order.boxes[boxIdx];
+
+                    // Deduct from overall packed_qty safely
+                    Object.entries(box.items).forEach(([sku, qty]) => {
+                        const item = order.items.find(i => i.sku === sku);
+                        if (item) {
+                            item.packed_qty = Math.max(0, (item.packed_qty || 0) - qty);
+                        }
+                    });
+
+                    // Remove the box
+                    order.boxes.splice(boxIdx, 1);
+                    app.saveData();
+                    app.logic.refreshDetail(orderId);
+                    app.ui.toast(`รื้อกล่องที่ ${boxIdx + 1} เรียบร้อยแล้ว`, 'success');
+                },
+                // *******************************************
+
                 selectPackItem(orderId, idx) {
                     if (app.session.selectedPackIndex === idx) {
                         app.session.selectedPackIndex = null; 
@@ -1487,7 +1548,6 @@
                     setTimeout(() => { document.getElementById('pack-scan-input')?.focus({preventScroll:true}); }, 50);
                 },
 
-                // *** NEW: SMART AUTO-FOCUS SCAN ***
                 scanPackItem(orderId, barcode) {
                     barcode = barcode.trim();
                     if(!barcode) return;
@@ -1505,7 +1565,6 @@
                     const inputEl = document.getElementById('pack-scan-input');
                     let itemIndex = -1;
                     
-                    // Lookup Product
                     const productInfo = app.data.products.find(p => p.barcode === barcode || p.sku === barcode);
                     if (productInfo) {
                         itemIndex = order.items.findIndex(i => i.sku === productInfo.sku);
@@ -1513,9 +1572,7 @@
                         itemIndex = order.items.findIndex(i => i.sku === barcode);
                     }
 
-                    // --- SMART FOCUS LOGIC ---
                     if (itemIndex !== -1) {
-                        // AUTO SWITCH FOCUS to this item (No manual selection needed)
                         app.session.selectedPackIndex = itemIndex;
 
                         const item = order.items[itemIndex];
@@ -1523,22 +1580,17 @@
 
                         if (currentPacked + multiplier > item.qty) {
                             app.ui.toast(`จำนวนเกิน! (รับ: ${item.qty}, แพ็คแล้ว: ${currentPacked})`, 'warning');
-                            // Play Warning Sound logic can be added here
                         } else {
-                            // Valid Scan: Increment
                             item.packed_qty = currentPacked + multiplier;
                             
-                            // Box Logic
                             if (!order.active_box) order.active_box = { items: {}, total_qty: 0 };
                             if (!order.active_box.items[item.sku]) order.active_box.items[item.sku] = 0;
                             order.active_box.items[item.sku] += multiplier;
                             order.active_box.total_qty += multiplier;
 
                             app.saveData();
-                            // Optional: Play Success Sound
                         }
                     } else {
-                        // Not found in order
                          app.ui.toast('ไม่พบสินค้านี้ในออเดอร์', 'error');
                          if(inputEl) {
                             inputEl.classList.add('bg-red-50', 'text-red-600', 'animate-shake');
@@ -1548,7 +1600,6 @@
 
                     this.refreshDetail(orderId);
                     
-                    // Re-focus without scrolling
                     setTimeout(() => { 
                         const scanIn = document.getElementById('pack-scan-input');
                         if(scanIn) scanIn.focus({preventScroll:true}); 
@@ -1561,16 +1612,13 @@
                         return app.ui.toast('กล่องยังว่างอยู่ ไม่สามารถปิดได้', 'warning');
                     }
 
-                    // Push current active box to history
                     order.boxes.push(JSON.parse(JSON.stringify(order.active_box)));
                     
-                    // Reset Active Box
                     order.active_box = { items: {}, total_qty: 0 };
                     
                     app.saveData();
                     this.refreshDetail(orderId);
                     
-                    // Show animation or confirmation
                     app.ui.toast(`ปิดกล่องที่ ${order.boxes.length} เรียบร้อยแล้ว`, 'success');
                 },
 
@@ -1607,7 +1655,6 @@
                     `;
 
                     app.ui.modalHTML('พิมพ์ Label กล่องสินค้า', html, () => {
-                        // Collect updated quantities
                         const updatedItems = {};
                         let totalQty = 0;
                         Object.keys(box.items).forEach(sku => {
@@ -1621,7 +1668,6 @@
                             }
                         });
                         
-                        // Print Logic (Simulation)
                         app.logic.printLabel(orderId, boxIdx, updatedItems, totalQty);
                     }, 'พิมพ์ Label');
                 },
@@ -1631,7 +1677,6 @@
                     const boxNumber = boxIdx + 1;
                     const today = new Date().toLocaleString('th-TH');
                     
-                    // Generate Table Rows
                     let rows = '';
                     Object.entries(items).forEach(([sku, qty]) => {
                          const prod = app.data.products.find(p => p.sku === sku);
@@ -1646,12 +1691,11 @@
                             </tr>`;
                     });
 
-                    // Label HTML Content
                     const labelContent = `
                         <div class="w-[350px] mx-auto border-2 border-black p-4 rounded-xl bg-white text-black font-sans">
                             <div class="mb-4 text-center border-b-2 border-black pb-4">
                                 <div class="text-xs text-gray-500 uppercase font-bold">Customer</div>
-                                <div class="text-3xl font-black leading-tight mb-2">${order.customer}</div> <!-- Increased size -->
+                                <div class="text-3xl font-black leading-tight mb-2">${order.customer}</div> 
                                 <div class="flex justify-center gap-3 mt-1 text-xs text-gray-500">
                                     <span>${order.docNo}</span>
                                     <span>•</span>
@@ -1660,7 +1704,7 @@
                             </div>
                             
                             <div class="text-center mb-6">
-                                <div class="inline-block border-2 border-black text-2xl font-bold px-4 py-2 rounded-lg mb-1">BOX ${boxNumber}</div> <!-- Decreased size and border thickness -->
+                                <div class="inline-block border-2 border-black text-2xl font-bold px-4 py-2 rounded-lg mb-1">BOX ${boxNumber}</div> 
                                 <div class="text-xs font-bold uppercase tracking-wide text-gray-400">PACKING LABEL</div>
                             </div>
 
@@ -1688,7 +1732,6 @@
                         </div>
                     `;
 
-                    // Create a hidden iframe for printing (Better than overwriting body styles)
                     let printFrame = document.getElementById('print-frame');
                     if (!printFrame) {
                         printFrame = document.createElement('iframe');
@@ -1734,13 +1777,30 @@
                     doc.close();
                 },
 
+                // *** UPDATED: Bug fix on adjust qty ***
                 adjustPackQty(orderId, itemIdx, delta) {
                     const order = app.data.orders.find(o => o.id === orderId);
                     const item = order.items[itemIdx];
                     const newQty = (item.packed_qty || 0) + delta;
                     if(newQty < 0) return;
                     if(newQty > item.qty) return app.ui.toast('เกินจำนวนที่สั่ง', 'error');
-                    
+
+                    // Security check to avoid un-packing closed boxes items via simple +/- 
+                    if (delta < 0) {
+                        if (order.active_box && order.active_box.items && order.active_box.items[item.sku] && order.active_box.items[item.sku] > 0) {
+                            order.active_box.items[item.sku] += delta;
+                            order.active_box.total_qty += delta;
+                            if(order.active_box.items[item.sku] <= 0) delete order.active_box.items[item.sku];
+                        } else {
+                            return app.ui.toast('สินค้านี้ถูกปิดลงกล่องไปแล้ว กรุณาแก้ไขที่กล่องโดยตรง', 'warning');
+                        }
+                    } else {
+                        if (!order.active_box) order.active_box = { items: {}, total_qty: 0 };
+                        if (!order.active_box.items[item.sku]) order.active_box.items[item.sku] = 0;
+                        order.active_box.items[item.sku] += delta;
+                        order.active_box.total_qty += delta;
+                    }
+
                     item.packed_qty = newQty;
                     app.saveData();
                     this.refreshDetail(orderId);
@@ -1777,7 +1837,6 @@
                     this.refreshDetail(id);
                 },
                 
-                // NEW: Pass All QC Logic
                 passAllQC(id) {
                     const order = app.data.orders.find(o => o.id === id);
                     if (!order) return;
@@ -1817,7 +1876,6 @@
                         const notPacked = order.items.some(i => (i.packed_qty || 0) !== i.qty);
                         if(notPacked) return app.ui.toast('สินค้ายังแพ็คไม่ครบตามจำนวน', 'error');
                         
-                        // Auto Close Last Box if not empty
                         if(order.active_box && order.active_box.total_qty > 0) {
                             order.boxes.push(JSON.parse(JSON.stringify(order.active_box)));
                             order.active_box = { items: {}, total_qty: 0 };
