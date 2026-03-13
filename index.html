@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Warehouse QC Enterprise v3.17 (Manager Edit Mode)</title>
+    <title>Warehouse QC Enterprise v3.18 (Edit Order in Pack)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -113,7 +113,7 @@
                     <i data-lucide="package-check" class="w-8 h-8 text-white"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-800">Warehouse QC</h1>
-                <p class="text-sm text-slate-400">Enterprise Edition v3.17</p>
+                <p class="text-sm text-slate-400">Enterprise Edition v3.18</p>
             </div>
             <div class="space-y-4">
                 <div><label class="text-xs font-bold text-slate-500 mb-1.5 block ml-1">ชื่อผู้ใช้</label><input type="text" id="login-username" class="input-field w-full" placeholder="username"></div>
@@ -153,7 +153,7 @@
                 <button onclick="app.auth.logout()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-50 transition-all">
                     <i data-lucide="log-out" class="w-5 h-5"></i> ออกจากระบบ
                 </button>
-                <p class="text-[10px] text-slate-400 text-center mt-3 font-mono">v3.17 (Enterprise)</p>
+                <p class="text-[10px] text-slate-400 text-center mt-3 font-mono">v3.18 (Enterprise)</p>
             </div>
         </aside>
 
@@ -835,6 +835,14 @@
 
                         mainContent = `
                         <div class="flex-1 w-full min-w-0">
+                            ${app.currentUser.role === 'manager' ? `
+                                <div class="mb-4 animate-fade-in">
+                                    <button onclick="app.logic.openEditOrderModal('${order.id}')" class="w-full py-3 bg-white border-2 border-orange-100 text-orange-600 rounded-2xl text-sm font-bold shadow-sm hover:bg-orange-50 hover:border-orange-300 transition-all flex items-center justify-center gap-2">
+                                        <i data-lucide="edit-3" class="w-5 h-5"></i> แก้ไขรายการออเดอร์ (กรณีคีย์ผิด)
+                                    </button>
+                                </div>
+                            ` : ''}
+
                             <div class="sticky top-0 z-20 -mx-4 -mt-4 mb-4 px-4 pt-4 pb-2 bg-slate-50/95 backdrop-blur space-y-3">
                                 
                                 ${scannedItemCard}
@@ -906,10 +914,17 @@
                                             
                                             <div class="flex-1 min-w-0">
                                                 <div class="flex justify-between items-start mb-2">
-                                                    <h3 class="font-bold text-slate-800 text-base truncate pr-2 ${isSelected ? 'text-blue-700' : ''} leading-tight">${item.name}</h3>
+                                                    <div class="flex items-center gap-2 pr-2">
+                                                        <h3 class="font-bold text-slate-800 text-base truncate ${isSelected ? 'text-blue-700' : ''} leading-tight">${item.name}</h3>
+                                                        ${app.currentUser.role === 'manager' ? `
+                                                            <button onclick="event.stopPropagation(); app.logic.openEditProductModal('${item.sku}', '${order.id}')" class="p-1 text-slate-300 hover:text-orange-500 transition-colors shrink-0" title="แก้ไข Master Data">
+                                                                <i data-lucide="edit-2" class="w-3 h-3"></i>
+                                                            </button>
+                                                        ` : ''}
+                                                    </div>
                                                     
                                                     <!-- Controls -->
-                                                    <div class="flex items-center gap-3" onclick="event.stopPropagation()">
+                                                    <div class="flex items-center gap-3 shrink-0" onclick="event.stopPropagation()">
                                                         <button onclick="app.logic.adjustPackQty('${order.id}', ${idx}, -1)" class="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 flex items-center justify-center transition-colors"><i data-lucide="minus" class="w-5 h-5"></i></button>
                                                         <span class="text-2xl font-black w-10 text-center ${packedQty >= item.qty ? 'text-emerald-600' : 'text-blue-600'}">${packedQty}</span>
                                                         <button onclick="app.logic.adjustPackQty('${order.id}', ${idx}, 1)" class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition-colors"><i data-lucide="plus" class="w-5 h-5"></i></button>
@@ -923,7 +938,7 @@
                                                     </div>
                                                     
                                                     <!-- Order Quantity -->
-                                                    <div class="flex items-baseline gap-1 text-slate-500 text-xs">
+                                                    <div class="flex items-baseline gap-1 text-slate-500 text-xs shrink-0">
                                                         <span>สั่ง:</span>
                                                         <span class="text-xl font-black text-black">${item.qty}</span>
                                                         <span>${item.unit}</span>
@@ -1016,6 +1031,140 @@
             },
 
             logic: {
+                // *** NEW: Edit Order Modal Functionality ***
+                openEditOrderModal(orderId) {
+                    const order = app.data.orders.find(o => o.id === orderId);
+                    if (!order) return;
+
+                    let itemsHtml = order.items.map((item, idx) => `
+                        <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm edit-order-item" data-idx="${idx}">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">รายการที่ ${idx+1}</span>
+                                ${item.packed_qty > 0 ? `<span class="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">แพ็คลงกล่องแล้ว: ${item.packed_qty}</span>` : ''}
+                            </div>
+                            <div class="grid grid-cols-1 gap-2">
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-500">SKU</label>
+                                    <input type="text" class="input-field w-full text-xs py-1.5 px-2 eo-sku bg-slate-50" value="${item.sku || ''}" readonly>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-500">ชื่อสินค้า</label>
+                                    <input type="text" class="input-field w-full text-xs py-1.5 px-2 eo-name" value="${(item.name || '').replace(/"/g, '&quot;')}">
+                                </div>
+                                <div class="flex gap-2">
+                                    <div class="flex-1">
+                                        <label class="text-[10px] font-bold text-slate-500">จำนวนสั่ง</label>
+                                        <input type="number" class="input-field w-full text-sm font-bold py-1.5 px-2 eo-qty" value="${item.qty}" min="${item.packed_qty || 0}">
+                                    </div>
+                                    <div class="w-16 flex items-end">
+                                        <button onclick="this.closest('.edit-order-item').remove()" class="w-full h-[34px] bg-red-50 text-red-500 rounded-lg flex items-center justify-center hover:bg-red-100 transition-colors" title="ลบรายการนี้" ${item.packed_qty > 0 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''}>
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+
+                    const html = `
+                        <div class="space-y-4">
+                            <div class="bg-orange-50 p-3 rounded-xl border border-orange-100 text-orange-700 text-xs leading-relaxed">
+                                <b>โหมดแก้ไขออเดอร์ (กรณีคีย์ผิด):</b> สามารถปรับปรุง "ชื่อสินค้า" และ "จำนวนที่สั่ง" ได้ <br>(จำนวนสั่งใหม่ต้องไม่น้อยกว่าจำนวนที่แพ็คลงกล่องไปแล้ว)
+                            </div>
+                            <div class="max-h-[50vh] overflow-y-auto space-y-3 p-1" id="edit-order-list">
+                                ${itemsHtml}
+                            </div>
+                            <button onclick="app.logic.addEditOrderItem()" class="w-full py-2.5 border-2 border-dashed border-blue-300 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-50 transition-colors flex items-center justify-center gap-1">
+                                <i data-lucide="plus" class="w-4 h-4"></i> เพิ่มรายการสินค้าใหม่
+                            </button>
+                        </div>
+                    `;
+
+                    app.ui.modalHTML(`แก้ไขออเดอร์: ${order.docNo}`, html, () => {
+                        const list = document.getElementById('edit-order-list');
+                        const rows = list.querySelectorAll('.edit-order-item');
+                        const newItems = [];
+                        
+                        rows.forEach(row => {
+                            const skuInput = row.querySelector('.eo-sku');
+                            const sku = skuInput ? skuInput.value.trim() : '';
+                            const name = row.querySelector('.eo-name').value.trim();
+                            const qty = parseInt(row.querySelector('.eo-qty').value) || 0;
+                            
+                            const oldIdx = row.dataset.idx;
+                            const oldItem = oldIdx !== undefined && oldIdx !== "" ? order.items[oldIdx] : null;
+                            
+                            if (name && qty > 0) {
+                                if (oldItem) {
+                                    oldItem.sku = sku;
+                                    oldItem.name = name;
+                                    oldItem.qty = qty;
+                                    newItems.push(oldItem);
+                                } else {
+                                    newItems.push({
+                                        sku, name, qty, unit: 'ชิ้น', picked: 0, lot: '', passed: 0, failed: 0, picks: [], qc_reason: '', packed_qty: 0
+                                    });
+                                }
+                            }
+                        });
+
+                        if(newItems.length === 0) {
+                            app.ui.toast('ออเดอร์ต้องมีอย่างน้อย 1 รายการ', 'error');
+                            return; 
+                        }
+
+                        order.items = newItems;
+                        order.logs.push({action: 'แก้ไขรายการในออเดอร์ (คีย์ผิด)', time: new Date().toLocaleString('th-TH'), user: app.currentUser.name});
+                        app.saveData();
+                        app.logic.refreshDetail(orderId);
+                        app.ui.toast('บันทึกการแก้ไขออเดอร์แล้ว');
+
+                    }, 'บันทึกการแก้ไข');
+                    
+                    setTimeout(() => {
+                        const btn = document.getElementById('modal-confirm');
+                        if(btn) {
+                            btn.className = "px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-orange-200 transition-colors";
+                        }
+                        lucide.createIcons();
+                    }, 50);
+                },
+
+                addEditOrderItem() {
+                    const list = document.getElementById('edit-order-list');
+                    const div = document.createElement('div');
+                    div.className = 'bg-white p-3 rounded-xl border border-blue-200 shadow-sm edit-order-item animate-slide-up ring-2 ring-blue-50';
+                    div.innerHTML = `
+                        <div class="flex justify-between mb-2">
+                            <span class="text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded">รายการใหม่</span>
+                        </div>
+                        <div class="grid grid-cols-1 gap-2">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500">SKU</label>
+                                <input type="text" class="input-field w-full text-xs py-1.5 px-2 eo-sku" placeholder="SKU (ถ้ามี)">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500">ชื่อสินค้า</label>
+                                <input type="text" class="input-field w-full text-xs py-1.5 px-2 eo-name" placeholder="ระบุชื่อสินค้า">
+                            </div>
+                            <div class="flex gap-2">
+                                <div class="flex-1">
+                                    <label class="text-[10px] font-bold text-slate-500">จำนวนสั่ง</label>
+                                    <input type="number" class="input-field w-full text-sm font-bold py-1.5 px-2 eo-qty" value="1" min="1">
+                                </div>
+                                <div class="w-16 flex items-end">
+                                    <button onclick="this.closest('.edit-order-item').remove()" class="w-full h-[34px] bg-red-50 text-red-500 rounded-lg flex items-center justify-center hover:bg-red-100 transition-colors">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    list.appendChild(div);
+                    lucide.createIcons();
+                    div.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                },
+
                 openImportInventory() {
                     app.ui.modalHTML('นำเข้าสินค้า (Excel)', `
                         <div class="space-y-4">
@@ -1064,14 +1213,17 @@
 
                         app.data.products.push({ sku, name, barcode });
                         app.saveData();
-                        app.views.renderInventoryList();
+                        
+                        if(app.currentPage === 'inventory') app.views.renderInventoryList();
                         app.ui.toast('เพิ่มสินค้าเรียบร้อยแล้ว');
                     }, 'บันทึก');
                 },
                 
-                openEditProductModal(oldSku) {
+                openEditProductModal(oldSku, returnToOrderId = null) {
                     const product = app.data.products.find(p => p.sku === oldSku);
-                    if(!product) return;
+                    if(!product) {
+                        return app.ui.toast('สินค้านี้ไม่มีอยู่ในระบบ Master Data', 'error');
+                    }
 
                     const safeName = product.name.replace(/"/g, '&quot;');
                     const safeBarcode = product.barcode ? product.barcode.replace(/"/g, '&quot;') : '';
@@ -1093,7 +1245,7 @@
                         </div>
                     `;
 
-                    app.ui.modalHTML('แก้ไขข้อมูลสินค้า', html, () => {
+                    app.ui.modalHTML('แก้ไขข้อมูลสินค้า (Master Data)', html, () => {
                         const newSku = document.getElementById('edit-prod-sku').value.trim();
                         const newName = document.getElementById('edit-prod-name').value.trim();
                         const newBarcode = document.getElementById('edit-prod-barcode').value.trim();
@@ -1102,7 +1254,6 @@
                             return app.ui.toast('กรุณากรอก SKU และชื่อสินค้า', 'error');
                         }
                         
-                        // Check if new SKU already exists (and is not the same as old SKU)
                         if(newSku !== oldSku && app.data.products.some(p => p.sku === newSku)) {
                             return app.ui.toast('SKU นี้มีอยู่แล้วในระบบ', 'error');
                         }
@@ -1111,7 +1262,13 @@
                         if(index !== -1) {
                             app.data.products[index] = { sku: newSku, name: newName, barcode: newBarcode };
                             app.saveData();
-                            app.views.renderInventoryList();
+                            
+                            if (app.currentPage === 'inventory') {
+                                app.views.renderInventoryList();
+                            } else if (app.currentPage === 'detail' && app.currentParam) {
+                                app.logic.refreshDetail(app.currentParam);
+                            }
+
                             app.ui.toast('อัปเดตข้อมูลสินค้าสำเร็จ');
                         }
                     }, 'บันทึกการแก้ไข');
