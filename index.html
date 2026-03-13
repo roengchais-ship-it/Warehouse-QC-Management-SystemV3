@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Warehouse QC Enterprise v3.19 (Fix Data Escaping & Cascading)</title>
+    <title>Warehouse QC Enterprise v3.20 (Unlock Edit Order SKU)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -108,7 +108,7 @@
                     <i data-lucide="package-check" class="w-8 h-8 text-white"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-800">Warehouse QC</h1>
-                <p class="text-sm text-slate-400">Enterprise Edition v3.19</p>
+                <p class="text-sm text-slate-400">Enterprise Edition v3.20</p>
             </div>
             <div class="space-y-4">
                 <div><label class="text-xs font-bold text-slate-500 mb-1.5 block ml-1">ชื่อผู้ใช้</label><input type="text" id="login-username" class="input-field w-full" placeholder="username"></div>
@@ -146,7 +146,7 @@
                 <button onclick="app.auth.logout()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-50 transition-all">
                     <i data-lucide="log-out" class="w-5 h-5"></i> ออกจากระบบ
                 </button>
-                <p class="text-[10px] text-slate-400 text-center mt-3 font-mono">v3.19 (Enterprise)</p>
+                <p class="text-[10px] text-slate-400 text-center mt-3 font-mono">v3.20 (Enterprise)</p>
             </div>
         </aside>
 
@@ -1027,7 +1027,7 @@
                             <div class="grid grid-cols-1 gap-2">
                                 <div>
                                     <label class="text-[10px] font-bold text-slate-500">SKU</label>
-                                    <input type="text" class="input-field w-full text-xs py-1.5 px-2 eo-sku bg-slate-50" value="${app.ui.escapeHTML(item.sku)}" readonly>
+                                    <input type="text" class="input-field w-full text-xs py-1.5 px-2 eo-sku" value="${app.ui.escapeHTML(item.sku)}">
                                 </div>
                                 <div>
                                     <label class="text-[10px] font-bold text-slate-500">ชื่อสินค้า</label>
@@ -1051,7 +1051,7 @@
                     const html = `
                         <div class="space-y-4">
                             <div class="bg-orange-50 p-3 rounded-xl border border-orange-100 text-orange-700 text-xs leading-relaxed">
-                                <b>โหมดแก้ไขออเดอร์ (กรณีคีย์ผิด):</b> สามารถปรับปรุง "ชื่อสินค้า" และ "จำนวนที่สั่ง" ได้ <br>(จำนวนสั่งใหม่ต้องไม่น้อยกว่าจำนวนที่แพ็คลงกล่องไปแล้ว)
+                                <b>โหมดแก้ไขออเดอร์ (กรณีคีย์ผิด):</b> สามารถปรับปรุง "SKU", "ชื่อสินค้า" และ "จำนวนที่สั่ง" ได้ <br>(หากแก้ SKU ระบบจะอัปเดตข้อมูลกล่องที่แพ็คไปแล้วให้ตรงกัน)
                             </div>
                             <div class="max-h-[50vh] overflow-y-auto space-y-3 p-1" id="edit-order-list">
                                 ${itemsHtml}
@@ -1078,6 +1078,23 @@
                             
                             if (name && qty > 0) {
                                 if (oldItem) {
+                                    const oldSku = oldItem.sku;
+                                    
+                                    if (oldSku !== sku) {
+                                        if (order.boxes) {
+                                            order.boxes.forEach(b => {
+                                                if (b.items[oldSku] !== undefined) {
+                                                    b.items[sku] = (b.items[sku] || 0) + b.items[oldSku];
+                                                    delete b.items[oldSku];
+                                                }
+                                            });
+                                        }
+                                        if (order.active_box && order.active_box.items && order.active_box.items[oldSku] !== undefined) {
+                                            order.active_box.items[sku] = (order.active_box.items[sku] || 0) + order.active_box.items[oldSku];
+                                            delete order.active_box.items[oldSku];
+                                        }
+                                    }
+
                                     oldItem.sku = sku;
                                     oldItem.name = name;
                                     oldItem.qty = qty;
@@ -1201,7 +1218,6 @@
                     }, 'บันทึก');
                 },
                 
-                // *** FIXED: Updated Edit Product Modal to cascade changes ***
                 openEditProductModal(oldSku, returnToOrderId = null) {
                     const product = app.data.products.find(p => p.sku === oldSku);
                     if(!product) {
@@ -1249,7 +1265,6 @@
                         if(index !== -1) {
                             app.data.products[index] = { sku: newSku, name: newName, barcode: newBarcode };
                             
-                            // *** CASCADING UPDATE: อัปเดตออเดอร์ที่มีสินค้านี้ทั้งหมด ***
                             app.data.orders.forEach(o => {
                                 let updated = false;
                                 
