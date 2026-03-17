@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Warehouse QC Enterprise v3.20 (Unlock Edit Order SKU)</title>
+    <title>Warehouse QC Enterprise v3.21 (Pack Summary & Force Close)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -108,7 +108,7 @@
                     <i data-lucide="package-check" class="w-8 h-8 text-white"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-800">Warehouse QC</h1>
-                <p class="text-sm text-slate-400">Enterprise Edition v3.20</p>
+                <p class="text-sm text-slate-400">Enterprise Edition v3.21</p>
             </div>
             <div class="space-y-4">
                 <div><label class="text-xs font-bold text-slate-500 mb-1.5 block ml-1">ชื่อผู้ใช้</label><input type="text" id="login-username" class="input-field w-full" placeholder="username"></div>
@@ -146,7 +146,7 @@
                 <button onclick="app.auth.logout()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-50 transition-all">
                     <i data-lucide="log-out" class="w-5 h-5"></i> ออกจากระบบ
                 </button>
-                <p class="text-[10px] text-slate-400 text-center mt-3 font-mono">v3.20 (Enterprise)</p>
+                <p class="text-[10px] text-slate-400 text-center mt-3 font-mono">v3.21 (Enterprise)</p>
             </div>
         </aside>
 
@@ -685,12 +685,18 @@
                         if (canEdit) footer = `<button onclick="app.logic.submitQC('${app.ui.escapeStr(id)}')" class="btn-main btn-rose">บันทึกผล QC</button>`;
                     } else if (order.status === 'pending_pack') {
                         content = this.renderPackContent(order, canEdit);
+                        const allComplete = order.items.every(i => (i.packed_qty || 0) >= i.qty);
+
                         footer = `<div class="flex gap-3 items-stretch">
                              <button class="w-24 px-2 btn-grey rounded-2xl font-bold flex flex-col items-center justify-center gap-1 text-[10px] text-slate-500 active:scale-95 transition-transform" onclick="app.logic.printPackingList('${app.ui.escapeStr(order.id)}')">
                                 <i data-lucide="printer" class="w-5 h-5"></i>
                                 <span>พิมพ์ใบรวม</span>
                              </button>
-                             ${canEdit ? `<button onclick="app.logic.moveStatus('${app.ui.escapeStr(id)}', 'ready_ship', 'แพ็คเสร็จสิ้น')" class="flex-1 btn-main btn-blue shadow-lg shadow-blue-200">ยืนยันแพ็คเสร็จสิ้น</button>` : ''}
+                             ${canEdit ? (
+                                 allComplete 
+                                 ? `<button onclick="app.logic.moveStatus('${app.ui.escapeStr(id)}', 'ready_ship', 'แพ็คเสร็จสิ้น')" class="flex-1 btn-main btn-blue shadow-lg shadow-blue-200">ยืนยันแพ็คเสร็จสิ้น</button>`
+                                 : `<button onclick="app.logic.forceCompletePack('${app.ui.escapeStr(id)}')" class="flex-1 btn-main btn-orange shadow-lg shadow-orange-200">ปิดงาน (แพ็คไม่ครบ)</button>`
+                             ) : ''}
                         </div>`;
                     } else if (order.status === 'ready_ship') {
                         content = this.renderReadOnlyContent(order);
@@ -802,7 +808,7 @@
                                         </span>
                                         <div class="text-right">
                                             <span class="block text-xs opacity-70 mb-1">จำนวนที่ต้องแพ็ค</span>
-                                            <span class="text-4xl font-black tracking-tighter">${item.packed_qty} <span class="text-xl opacity-60 font-normal">/ ${item.qty}</span></span>
+                                            <span class="text-4xl font-black tracking-tighter">${item.packed_qty || 0} <span class="text-xl opacity-60 font-normal">/ ${item.qty}</span></span>
                                         </div>
                                     </div>
                                     
@@ -962,10 +968,15 @@
                         rightColumnHtml = `
                             <div class="w-full lg:w-80 shrink-0 lg:sticky lg:top-4 mt-8 lg:mt-0">
                                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
-                                    <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
-                                        <i data-lucide="package-check" class="w-5 h-5 text-emerald-500"></i> 
-                                        แพ็คเสร็จแล้ว (${order.boxes.length})
-                                    </h3>
+                                    <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+                                        <h3 class="font-bold text-slate-700 flex items-center gap-2">
+                                            <i data-lucide="package-check" class="w-5 h-5 text-emerald-500"></i> 
+                                            แพ็คเสร็จแล้ว (${order.boxes.length})
+                                        </h3>
+                                        <button onclick="app.logic.showPackSummary('${app.ui.escapeStr(order.id)}')" class="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-1 shadow-sm">
+                                            <i data-lucide="file-bar-chart" class="w-3 h-3"></i> สรุปการแพ็ค
+                                        </button>
+                                    </div>
                                     <div class="space-y-3 max-h-[calc(100vh-200px)] overflow-y-auto pr-1">
                                         ${order.boxes.map((box, index) => `
                                             <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 hover:bg-white hover:shadow-md transition-all group flex flex-col h-full">
@@ -1809,6 +1820,171 @@
                     app.ui.toast(`ปิดกล่องที่ ${order.boxes.length} เรียบร้อยแล้ว`, 'success');
                 },
 
+                showPackSummary(orderId) {
+                    const order = app.data.orders.find(o => o.id === orderId);
+                    if (!order) return;
+
+                    // Collect data
+                    const summary = {};
+                    // Combine packed boxes and active box
+                    const allBoxes = [...(order.boxes || [])];
+                    if (order.active_box && order.active_box.total_qty > 0) {
+                        allBoxes.push(order.active_box);
+                    }
+
+                    order.items.forEach(item => {
+                        summary[item.sku] = {
+                            name: item.name,
+                            reqQty: item.qty,
+                            packedQty: item.packed_qty || 0,
+                            boxes: []
+                        };
+                    });
+
+                    allBoxes.forEach((box, bIdx) => {
+                        const boxName = bIdx < (order.boxes || []).length ? `กล่อง ${bIdx + 1}` : 'กล่องปจบ.';
+                        Object.entries(box.items).forEach(([sku, qty]) => {
+                            if (summary[sku]) {
+                                summary[sku].boxes.push({ boxName, qty });
+                            }
+                        });
+                    });
+
+                    // Build HTML
+                    let html = `<div class="max-h-[60vh] overflow-y-auto space-y-4 pr-2" id="pack-summary-content">`;
+                    Object.values(summary).forEach(item => {
+                        let boxTags = item.boxes.map(b => `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 text-[10px] px-2 py-1 rounded-lg font-bold">${b.boxName} : ${b.qty}</span>`).join('');
+                        if(!boxTags) boxTags = '<span class="text-xs text-slate-400">- ยังไม่ได้แพ็ค -</span>';
+
+                        const isComplete = item.packedQty >= item.reqQty;
+                        html += `
+                            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                                <div class="font-bold text-slate-800 text-sm mb-1">${app.ui.escapeHTML(item.name)}</div>
+                                <div class="text-xs text-slate-500 mb-3 flex justify-between border-b border-slate-50 pb-2">
+                                    <span>สั่ง: ${item.reqQty} | แพ็คแล้ว: ${item.packedQty}</span>
+                                    <span class="${isComplete ? 'text-emerald-500 font-bold' : 'text-orange-500 font-bold'}">${isComplete ? 'ครบแล้ว' : 'ยังไม่ครบ'}</span>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    ${boxTags}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                    html += `
+                        <div class="mt-4 pt-4 border-t border-slate-100">
+                            <button onclick="app.logic.printPackingList('${app.ui.escapeStr(orderId)}')" class="w-full btn-grey h-12 rounded-xl text-slate-700 font-bold flex items-center justify-center gap-2">
+                                <i data-lucide="printer" class="w-4 h-4"></i> พิมพ์ใบสรุปการแพ็ค (Packing List)
+                            </button>
+                        </div>
+                    `;
+
+                    app.ui.modalHTML(`สรุปการแพ็ค: ${app.ui.escapeHTML(order.docNo)}`, html, () => {}, 'ปิด');
+                    document.getElementById('modal-cancel').style.display = 'none';
+                    lucide.createIcons();
+                },
+
+                printPackingList(orderId) {
+                    const order = app.data.orders.find(o => o.id === orderId);
+                    const today = new Date().toLocaleString('th-TH');
+
+                    const allBoxes = [...(order.boxes || [])];
+                    if (order.active_box && order.active_box.total_qty > 0) allBoxes.push(order.active_box);
+
+                    let rows = '';
+                    order.items.forEach(item => {
+                        let boxDetails = [];
+                        allBoxes.forEach((box, bIdx) => {
+                            const bName = bIdx < (order.boxes || []).length ? `Box ${bIdx + 1}` : 'Current Box';
+                            if (box.items[item.sku]) boxDetails.push(`${bName}: ${box.items[item.sku]}`);
+                        });
+
+                        const boxStr = boxDetails.length > 0 ? boxDetails.join('<br>') : '-';
+                        const statusStr = (item.packed_qty || 0) >= item.qty ? 'Complete' : 'Incomplete';
+
+                        rows += `
+                            <tr class="border-b border-gray-300 text-sm">
+                                <td class="py-3 pr-2 align-top">
+                                    <div class="font-bold text-gray-800 text-sm">${app.ui.escapeHTML(item.name)}</div>
+                                    <div class="text-[10px] text-gray-500 font-mono">${app.ui.escapeHTML(item.sku)}</div>
+                                </td>
+                                <td class="text-center align-top py-3 text-sm">${item.qty}</td>
+                                <td class="text-center align-top py-3 font-bold text-sm">${item.packed_qty || 0}</td>
+                                <td class="text-left align-top py-3 text-xs font-mono text-blue-700 font-bold leading-relaxed">${boxStr}</td>
+                                <td class="text-right align-top py-3 text-xs font-bold uppercase tracking-wide ${statusStr === 'Complete' ? 'text-green-600' : 'text-red-600'}">${statusStr}</td>
+                            </tr>
+                        `;
+                    });
+
+                    const content = `
+                        <div class="w-[800px] mx-auto p-8 bg-white text-black font-sans">
+                            <div class="text-center mb-8 border-b-2 border-black pb-6">
+                                <h2 class="text-3xl font-black mb-2 tracking-wide">PACKING SUMMARY REPORT</h2>
+                                <h3 class="text-xl font-bold text-gray-700">${app.ui.escapeHTML(order.customer)}</h3>
+                                <p class="text-sm text-gray-500 mt-2 font-mono">Document: ${app.ui.escapeHTML(order.docNo)} &nbsp;|&nbsp; Print Date: ${today}</p>
+                            </div>
+
+                            <table class="w-full mb-6">
+                                <thead>
+                                    <tr class="text-xs uppercase tracking-wider text-gray-600 border-b-2 border-black bg-gray-50">
+                                        <th class="text-left py-3 px-2">Item Description / SKU</th>
+                                        <th class="text-center py-3 px-2 w-20">Req. Qty</th>
+                                        <th class="text-center py-3 px-2 w-20">Packed</th>
+                                        <th class="text-left py-3 px-2 w-40">Box Breakdown</th>
+                                        <th class="text-right py-3 px-2 w-24">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${rows}
+                                </tbody>
+                            </table>
+                            <div class="text-right text-xs text-gray-500 mt-12">
+                                Checked & Printed by: ${app.ui.escapeHTML(app.currentUser.name)} • Warehouse QC System
+                            </div>
+                        </div>
+                    `;
+
+                    let printFrame = document.getElementById('print-frame');
+                    if (!printFrame) {
+                        printFrame = document.createElement('iframe');
+                        printFrame.id = 'print-frame';
+                        printFrame.style.position = 'fixed';
+                        printFrame.style.right = '0';
+                        printFrame.style.bottom = '0';
+                        printFrame.style.width = '0';
+                        printFrame.style.height = '0';
+                        printFrame.style.border = '0';
+                        document.body.appendChild(printFrame);
+                    }
+
+                    const doc = printFrame.contentWindow.document;
+                    doc.open();
+                    doc.write(`
+                        <html>
+                        <head>
+                            <title>Packing Summary - ${app.ui.escapeHTML(order.docNo)}</title>
+                            <script src="https://cdn.tailwindcss.com"><\/script>
+                            <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+                            <style>
+                                body { font-family: 'Sarabun', sans-serif; padding: 20px; margin: 0; }
+                                @media print { 
+                                    @page { size: A4 portrait; margin: 10mm; } 
+                                    body { margin: 0; -webkit-print-color-adjust: exact; }
+                                    tr { break-inside: avoid; }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            ${content}
+                            <script>
+                                setTimeout(() => { window.print(); }, 800); 
+                            <\/script>
+                        </body>
+                        </html>
+                    `);
+                    doc.close();
+                },
+
                 openPrintLabelModal(orderId, boxIdx) {
                     const order = app.data.orders.find(o => o.id === orderId);
                     const box = order.boxes[boxIdx];
@@ -2055,11 +2231,32 @@
                          });
                     } else { this.moveStatus(id, 'pending_pack', 'ผ่าน QC ทั้งหมด'); }
                 },
-                moveStatus(id, status, log) { 
+
+                forceCompletePack(orderId) {
+                    app.ui.modalHTML('ยืนยันปิดงาน (แพ็คไม่ครบ)', `
+                        <div class="text-center py-4">
+                            <div class="mx-auto w-12 h-12 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mb-3">
+                                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                            </div>
+                            <p class="text-slate-600 mb-2">ยังมีสินค้าที่แพ็ค <b class="text-orange-500">ไม่ครบตามจำนวนสั่ง</b>!</p>
+                            <p class="font-bold text-slate-800">คุณแน่ใจหรือไม่ที่จะบังคับปิดงานและส่งจัดส่ง?</p>
+                        </div>
+                    `, () => {
+                        app.logic.moveStatus(orderId, 'ready_ship', 'บังคับปิดงานแพ็ค (ไม่ครบจำนวน)', true);
+                    }, 'ยืนยันบังคับปิดงาน');
+
+                    setTimeout(() => {
+                        const btn = document.getElementById('modal-confirm');
+                        if(btn) btn.className = "px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-orange-200 transition-colors";
+                        lucide.createIcons();
+                    }, 50);
+                },
+
+                moveStatus(id, status, log, force = false) { 
                     const order = app.data.orders.find(x => x.id === id); 
                     if (status === 'ready_ship') {
                         const notPacked = order.items.some(i => (i.packed_qty || 0) !== i.qty);
-                        if(notPacked) return app.ui.toast('สินค้ายังแพ็คไม่ครบตามจำนวน', 'error');
+                        if(notPacked && !force) return app.ui.toast('สินค้ายังแพ็คไม่ครบตามจำนวน', 'error');
                         
                         if(order.active_box && order.active_box.total_qty > 0) {
                             order.boxes.push(JSON.parse(JSON.stringify(order.active_box)));
