@@ -675,7 +675,7 @@
 
                     let content = ''; let footer = '';
                     const role = app.currentUser.role;
-                    const canEdit = role === 'manager' || (role === 'stock' && order.status === 'pending_stock') || (role === 'qc' && order.status === 'pending_qc') || (role === 'pack' && (order.status === 'pending_pack' || order.status === 'ready_ship'));
+                    const canEdit = role === 'manager' || (role === 'stock' && order.status === 'pending_stock') || (role === 'qc' && order.status === 'pending_qc') || (role === 'pack' && (order.status === 'pending_pack' || order.status === 'ready_ship')) || (role === 'admin');
 
                     if (order.status === 'pending_stock') {
                         content = this.renderStockContent(order, canEdit);
@@ -700,7 +700,13 @@
                         </div>`;
                     } else if (order.status === 'ready_ship') {
                         content = this.renderReadOnlyContent(order);
-                        if (canEdit) footer = `<button onclick="app.logic.moveStatus('${app.ui.escapeStr(id)}', 'completed', 'จัดส่งแล้ว')" class="btn-main btn-emerald">ยืนยันการจัดส่ง</button>`;
+                        footer = `<div class="flex gap-3 items-stretch">
+                             <button class="${canEdit ? 'w-24 text-[10px] flex-col' : 'flex-1 text-sm h-14 flex-row'} px-2 btn-grey rounded-2xl font-bold flex items-center justify-center gap-1 text-slate-500 active:scale-95 transition-transform" onclick="app.logic.printPackingList('${app.ui.escapeStr(order.id)}')">
+                                <i data-lucide="printer" class="w-5 h-5"></i>
+                                <span>พิมพ์ใบรวม</span>
+                             </button>
+                             ${canEdit ? `<button onclick="app.logic.moveStatus('${app.ui.escapeStr(id)}', 'completed', 'จัดส่งแล้ว')" class="flex-1 btn-main btn-emerald shadow-lg shadow-emerald-200">ยืนยันการจัดส่ง</button>` : ''}
+                        </div>`;
                     } else { content = this.renderReadOnlyContent(order); }
 
                     container.innerHTML = `
