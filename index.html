@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Warehouse QC Enterprise v3.21 (Pack Summary & Force Close)</title>
+    <title>Warehouse QC Enterprise v3.5 (Dashboard & Report Update)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -33,7 +33,7 @@
         }
     </script>
     <style>
-        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 
@@ -108,7 +108,7 @@
                     <i data-lucide="package-check" class="w-8 h-8 text-white"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-800">Warehouse QC</h1>
-                <p class="text-sm text-slate-400">Enterprise Edition v3.21</p>
+                <p class="text-sm text-slate-400">Enterprise Edition v3.5</p>
             </div>
             <div class="space-y-4">
                 <div><label class="text-xs font-bold text-slate-500 mb-1.5 block ml-1">ชื่อผู้ใช้</label><input type="text" id="login-username" class="input-field w-full" placeholder="username"></div>
@@ -141,12 +141,12 @@
 
     <div id="main-layout" class="flex h-full pt-16 hidden">
         <aside class="hidden lg:flex flex-col w-64 bg-white border-r border-slate-200 h-full shadow-[2px_0_20px_rgba(0,0,0,0.02)] z-20">
-            <nav class="flex-1 p-4 space-y-1" id="desktop-nav"></nav>
-            <div class="p-4 border-t border-slate-100">
+            <nav class="flex-1 p-4 space-y-1 overflow-y-auto" id="desktop-nav"></nav>
+            <div class="p-4 border-t border-slate-100 shrink-0">
                 <button onclick="app.auth.logout()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-50 transition-all">
                     <i data-lucide="log-out" class="w-5 h-5"></i> ออกจากระบบ
                 </button>
-                <p class="text-[10px] text-slate-400 text-center mt-3 font-mono">v3.21 (Enterprise)</p>
+                <p class="text-[10px] text-slate-400 text-center mt-3 font-mono">v3.5 (Enterprise)</p>
             </div>
         </aside>
 
@@ -248,6 +248,8 @@
                                             if(main && main.innerHTML !== "") {
                                                 if(window.app.currentPage === 'detail' && window.app.currentParam) {
                                                     window.app.logic.refreshDetail(window.app.currentParam);
+                                                } else if(window.app.currentPage === 'report') {
+                                                    window.app.views.updateReportTable(); // Refresh report if open
                                                 } else {
                                                     window.app.router(window.app.currentPage, window.app.currentParam);
                                                 }
@@ -289,8 +291,8 @@
         const LOCAL_STORAGE_KEY = 'warehouse_qc_data_v3_gh'; 
 
         const ROLES = {
-            admin: { name: 'ผู้ดูแลระบบ', allowed: ['dashboard', 'inventory', 'stock', 'qc', 'pack', 'ship', 'history', 'detail', 'create'] }, 
-            manager: { name: 'หัวหน้างาน', allowed: ['dashboard', 'inventory', 'stock', 'qc', 'pack', 'ship', 'history', 'create', 'detail'] },
+            admin: { name: 'ผู้ดูแลระบบ', allowed: ['dashboard', 'inventory', 'stock', 'qc', 'pack', 'ship', 'report', 'history', 'detail', 'create'] }, 
+            manager: { name: 'หัวหน้างาน', allowed: ['dashboard', 'inventory', 'stock', 'qc', 'pack', 'ship', 'report', 'history', 'create', 'detail'] },
             stock: { name: 'ทีม Stock', allowed: ['dashboard', 'stock', 'inventory', 'history', 'detail'] }, 
             qc: { name: 'ทีม QC', allowed: ['dashboard', 'qc', 'history', 'detail'] },
             pack: { name: 'ทีม Pack', allowed: ['dashboard', 'pack', 'ship', 'history', 'create', 'detail'] }
@@ -298,12 +300,13 @@
 
         const MENU_ITEMS = [
             { id: 'dashboard', label: 'ภาพรวม', icon: 'layout-grid', mobile: true, badge: false },
-            { id: 'inventory', label: 'คลังสินค้า', icon: 'warehouse', mobile: true, badge: false }, 
+            { id: 'inventory', label: 'คลังสินค้า', icon: 'warehouse', mobile: false, badge: false }, 
             { id: 'stock', label: 'เบิกสินค้า', icon: 'layers', mobile: true, badge: true, badgeColor: 'bg-orange-500' },
             { id: 'qc', label: 'QC', icon: 'clipboard-check', mobile: true, badge: true, badgeColor: 'bg-rose-500' },
             { id: 'pack', label: 'แพ็ค', icon: 'box', mobile: true, badge: true, badgeColor: 'bg-blue-500' },
             { id: 'ship', label: 'จัดส่ง', icon: 'truck', mobile: false, badge: true, badgeColor: 'bg-emerald-500' }, 
-            { id: 'history', label: 'ประวัติ', icon: 'clock', mobile: true, badge: false }
+            { id: 'report', label: 'รายงานส่งขาด', icon: 'file-bar-chart', mobile: true, badge: false },
+            { id: 'history', label: 'ประวัติ', icon: 'clock', mobile: false, badge: false }
         ];
 
         const app = {
@@ -312,6 +315,7 @@
             currentPage: 'dashboard',
             currentParam: null,
             session: {}, 
+            reportData: [], // Store generated report data for export
             
             init() {
                 ['login-username', 'login-password'].forEach(id => {
@@ -332,6 +336,15 @@
                 } else { 
                     this.showLogin(); 
                 }
+
+                // Global click handler for closing custom dropdowns
+                document.addEventListener('click', (e) => {
+                    const repContainer = document.getElementById('rep-product-container');
+                    const repDropdown = document.getElementById('rep-product-dropdown');
+                    if (repContainer && repDropdown && !repContainer.contains(e.target)) {
+                        repDropdown.classList.add('hidden');
+                    }
+                });
             },
 
             loadDataLocal() {
@@ -488,6 +501,7 @@
                     case 'qc': this.views.renderList(main, 'pending_qc', 'QC ตรวจสอบ', 'clipboard-check', 'bg-rose-100 text-rose-600'); break;
                     case 'pack': this.views.renderList(main, 'pending_pack', 'แพ็คสินค้า', 'box', 'bg-blue-100 text-blue-600'); break;
                     case 'ship': this.views.renderList(main, 'ready_ship', 'จัดส่ง', 'truck', 'bg-emerald-100 text-emerald-600'); break;
+                    case 'report': this.views.renderReport(main); break;
                     case 'history': this.views.renderHistory(main); break;
                     case 'detail': this.views.renderDetail(main, param); break;
                     case 'create': this.views.renderCreateOrder(main); break;
@@ -495,7 +509,340 @@
                 lucide.createIcons();
             },
 
+            utils: {
+                // Parse old thai date strings "15 ส.ค. 66" or fallback to rawDate
+                parseDate(order) {
+                    if(order.rawDate) return new Date(order.rawDate);
+                    // Fallback for older data format
+                    const parts = order.date.split(' ');
+                    if(parts.length >= 3) {
+                        const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+                        const d = parseInt(parts[0]);
+                        const m = months.indexOf(parts[1]);
+                        const y = parseInt(parts[2]);
+                        if(!isNaN(d) && m !== -1 && !isNaN(y)) {
+                            // Assuming year is like 66, 67 (Buddhist era short)
+                            const fullYear = (y > 50 ? 2500 + y : 2500 + y) - 543;
+                            return new Date(fullYear, m, d);
+                        }
+                    }
+                    return new Date(order.date); // Last resort
+                }
+            },
+
             views: {
+                renderDashboard(container) {
+                    if(!app.data.orders) return;
+                    const stats = {
+                        stock: app.data.orders.filter(o => o.status === 'pending_stock').length,
+                        qc: app.data.orders.filter(o => o.status === 'pending_qc').length,
+                        pack: app.data.orders.filter(o => o.status === 'pending_pack').length,
+                        ship: app.data.orders.filter(o => o.status === 'ready_ship').length
+                    };
+
+                    // Find shortfalls in recent closed/ready orders
+                    const shortfallOrders = app.data.orders.filter(o => 
+                        (o.status === 'ready_ship' || o.status === 'completed') && 
+                        o.items.some(i => (i.packed_qty || 0) < i.qty)
+                    );
+
+                    container.innerHTML = `
+                        <div class="p-4 lg:p-8 space-y-6 animate-fade-in max-w-5xl mx-auto pb-32">
+                            <h2 class="text-2xl font-bold text-slate-800">ภาพรวม (Dashboard)</h2>
+                            
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                ${this.cardStat('รอเบิก', stats.stock, 'layers', 'bg-gradient-to-br from-orange-500 to-orange-400 text-white shadow-lg shadow-orange-200')}
+                                ${this.cardStat('รอตรวจ QC', stats.qc, 'clipboard-check', 'bg-gradient-to-br from-rose-500 to-rose-400 text-white shadow-lg shadow-rose-200')}
+                                ${this.cardStat('รอแพ็ค', stats.pack, 'box', 'bg-gradient-to-br from-blue-500 to-blue-400 text-white shadow-lg shadow-blue-200')}
+                                ${this.cardStat('รอส่ง', stats.ship, 'truck', 'bg-gradient-to-br from-emerald-500 to-emerald-400 text-white shadow-lg shadow-emerald-200')}
+                            </div>
+
+                            ${shortfallOrders.length > 0 && (app.currentUser.role === 'manager' || app.currentUser.role === 'admin') ? `
+                                <div class="bg-gradient-to-r from-rose-500 to-rose-600 rounded-3xl p-5 shadow-lg shadow-rose-200 text-white flex flex-col md:flex-row gap-4 items-center justify-between cursor-pointer hover:scale-[1.01] transition-transform" onclick="app.router('report')">
+                                    <div class="flex items-center gap-4">
+                                        <div class="bg-white/20 p-3 rounded-2xl backdrop-blur-sm"><i data-lucide="alert-triangle" class="w-8 h-8 text-white"></i></div>
+                                        <div>
+                                            <h3 class="font-bold text-lg">แจ้งเตือนสินค้าส่งขาด!</h3>
+                                            <p class="text-rose-100 text-sm">พบ ${shortfallOrders.length} ออเดอร์ที่มีการบังคับปิดงานโดยแพ็คสินค้าไม่ครบ</p>
+                                        </div>
+                                    </div>
+                                    <button class="bg-white text-rose-600 px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm flex items-center gap-2 whitespace-nowrap">
+                                        ดูรายงาน <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            ` : ''}
+
+                            <div class="bg-white rounded-3xl shadow-soft border border-slate-100 overflow-hidden mt-6">
+                                <div class="p-6 border-b border-slate-50 flex justify-between items-center"><h3 class="font-bold text-slate-700 text-lg">ออเดอร์ล่าสุด</h3></div>
+                                <div class="divide-y divide-slate-50">
+                                    ${app.data.orders.slice(0, 5).map(o => `
+                                        <div onclick="app.router('detail', '${app.ui.escapeStr(o.id)}')" class="p-5 flex items-center justify-between hover:bg-slate-50 cursor-pointer transition-colors group">
+                                            <div class="flex items-center gap-4">
+                                                <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-brand-50 group-hover:text-brand-600"><i data-lucide="package" class="w-5 h-5"></i></div>
+                                                <div><div class="font-bold text-sm text-slate-800">${app.ui.escapeHTML(o.customer)}</div><div class="text-xs text-slate-400">${app.ui.escapeHTML(o.docNo)} • ${o.items.length} รายการ</div></div>
+                                            </div>
+                                            ${app.ui.badge(o.status)}
+                                        </div>
+                                    `).join('')}
+                                    ${app.data.orders.length === 0 ? '<div class="p-8 text-center text-slate-400">ยังไม่มีออเดอร์ในระบบ</div>' : ''}
+                                </div>
+                            </div>
+                        </div>`;
+                },
+
+                renderReport(container) {
+                    // Extract unique customers for dropdown
+                    const customers = [...new Set(app.data.orders.map(o => o.customer))].filter(Boolean).sort();
+                    
+                    // Default dates (e.g., this month)
+                    const today = new Date();
+                    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+                    const currentDateStr = today.toISOString().split('T')[0];
+
+                    app.session.reportSelectedProducts = [];
+
+                    container.innerHTML = `
+                        <div class="p-4 lg:p-8 space-y-6 animate-fade-in max-w-6xl mx-auto pb-32">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-3 bg-indigo-100 text-indigo-600 rounded-2xl"><i data-lucide="file-search" class="w-6 h-6"></i></div>
+                                    <div><h2 class="text-2xl font-bold text-slate-800">รายงานการจัดส่ง (Report)</h2><p class="text-xs text-slate-500">ตรวจสอบยอดส่ง สรุปรายการสินค้าส่งขาด</p></div>
+                                </div>
+                                <button onclick="app.views.exportReportExcel()" class="btn-main btn-emerald !w-auto !h-11 px-5 text-sm shadow-sm whitespace-nowrap">
+                                    <i data-lucide="download" class="w-4 h-4"></i> Export Excel
+                                </button>
+                            </div>
+
+                            <!-- Filter Card -->
+                            <div class="bg-white p-5 rounded-3xl shadow-soft border border-slate-100">
+                                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
+                                    <div>
+                                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">จากวันที่</label>
+                                        <input type="date" id="rep-start" value="${firstDay}" class="input-field w-full text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">ถึงวันที่</label>
+                                        <input type="date" id="rep-end" value="${currentDateStr}" class="input-field w-full text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">สาขา / ลูกค้า</label>
+                                        <select id="rep-branch" class="input-field w-full text-sm text-slate-700 bg-white">
+                                            <option value="">-- ทุกสาขา/ลูกค้า --</option>
+                                            ${customers.map(c => `<option value="${app.ui.escapeHTML(c)}">${app.ui.escapeHTML(c)}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                    <div class="relative" id="rep-product-container">
+                                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">สินค้า (เลือกหลายรายการ)</label>
+                                        <div class="input-field w-full text-sm text-slate-700 bg-white cursor-pointer flex justify-between items-center" onclick="document.getElementById('rep-product-dropdown').classList.toggle('hidden')">
+                                            <span id="rep-product-label" class="truncate">-- ทุกสินค้า --</span>
+                                            <i data-lucide="chevron-down" class="w-4 h-4 shrink-0 ml-2 text-slate-400"></i>
+                                        </div>
+                                        <div id="rep-product-dropdown" class="absolute z-50 w-full md:w-80 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl hidden max-h-[300px] flex-col">
+                                            <div class="p-2 sticky top-0 bg-white border-b border-slate-100 rounded-t-xl shrink-0 z-10">
+                                                <input type="text" placeholder="ค้นหาสินค้า..." class="w-full text-xs p-2.5 border border-slate-200 rounded-lg outline-none focus:border-blue-400 bg-slate-50" oninput="app.logic.filterReportProducts(this.value)">
+                                            </div>
+                                            <div id="rep-product-list" class="p-1 overflow-y-auto flex-1">
+                                                <!-- Populated by JS -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">รูปแบบการแสดงผล</label>
+                                        <select id="rep-mode" class="input-field w-full text-sm text-slate-700 bg-white">
+                                            <option value="shortfall">แสดงเฉพาะ "สินค้าส่งขาด"</option>
+                                            <option value="all">แสดงประวัติจัดส่งทั้งหมด</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <button onclick="app.views.updateReportTable()" class="btn-main btn-blue !h-[42px] shadow-sm"><i data-lucide="search" class="w-4 h-4"></i> ค้นหา</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Summary Stats -->
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="rep-stats">
+                                <!-- Populated by JS -->
+                            </div>
+
+                            <!-- Table -->
+                            <div class="bg-white rounded-3xl shadow-soft border border-slate-100 overflow-hidden">
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left border-collapse min-w-[800px]">
+                                        <thead>
+                                            <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
+                                                <th class="p-4 font-bold">วันที่</th>
+                                                <th class="p-4 font-bold">เอกสาร / ออเดอร์</th>
+                                                <th class="p-4 font-bold">สาขา / ลูกค้า</th>
+                                                <th class="p-4 font-bold">รหัสสินค้า (SKU)</th>
+                                                <th class="p-4 font-bold">ชื่อสินค้า</th>
+                                                <th class="p-4 font-bold text-center">ยอดสั่ง</th>
+                                                <th class="p-4 font-bold text-center">ยอดส่ง</th>
+                                                <th class="p-4 font-bold text-center text-rose-500">ส่งขาด</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="rep-table-body" class="divide-y divide-slate-100 text-sm">
+                                            <!-- Populated by JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    this.renderReportProductList();
+                    this.updateReportTable();
+                },
+
+                renderReportProductList(filterText = '') {
+                    const listContainer = document.getElementById('rep-product-list');
+                    if(!listContainer) return;
+                    const products = app.data.products.filter(p => p.name.toLowerCase().includes(filterText.toLowerCase()) || p.sku.toLowerCase().includes(filterText.toLowerCase()));
+                    listContainer.innerHTML = products.map(p => {
+                        const isChecked = app.session.reportSelectedProducts.includes(p.sku) ? 'checked' : '';
+                        return `
+                            <label class="flex items-start gap-2 p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
+                                <input type="checkbox" value="${app.ui.escapeHTML(p.sku)}" class="mt-1 rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" ${isChecked} onchange="app.logic.toggleReportProduct(this)">
+                                <span class="text-sm text-slate-700 leading-tight select-none">${app.ui.escapeHTML(p.name)} <br><span class="text-[10px] text-slate-400 font-mono">${app.ui.escapeHTML(p.sku)}</span></span>
+                            </label>
+                        `;
+                    }).join('');
+                },
+
+                updateReportTable() {
+                    const startVal = document.getElementById('rep-start').value;
+                    const endVal = document.getElementById('rep-end').value;
+                    const branch = document.getElementById('rep-branch').value;
+                    const selectedProducts = app.session.reportSelectedProducts || [];
+                    const mode = document.getElementById('rep-mode').value;
+
+                    // Filter only processed orders
+                    let filteredOrders = app.data.orders.filter(o => o.status === 'completed' || o.status === 'ready_ship');
+
+                    // Filter Date
+                    if (startVal) {
+                        const sDate = new Date(startVal);
+                        sDate.setHours(0,0,0,0);
+                        filteredOrders = filteredOrders.filter(o => app.utils.parseDate(o) >= sDate);
+                    }
+                    if (endVal) {
+                        const eDate = new Date(endVal);
+                        eDate.setHours(23,59,59,999);
+                        filteredOrders = filteredOrders.filter(o => app.utils.parseDate(o) <= eDate);
+                    }
+
+                    // Filter Branch
+                    if (branch) {
+                        filteredOrders = filteredOrders.filter(o => o.customer === branch);
+                    }
+
+                    let reportItems = [];
+                    let stats = { totalOrd: 0, totalReq: 0, totalPack: 0, totalMiss: 0 };
+                    let uniqueOrderIds = new Set();
+
+                    filteredOrders.forEach(o => {
+                        o.items.forEach(i => {
+                            if (selectedProducts.length > 0 && !selectedProducts.includes(i.sku)) return;
+
+                            const req = i.qty;
+                            const pack = i.packed_qty || 0;
+                            const miss = req - pack;
+
+                            if (mode === 'shortfall' && miss <= 0) return; // Skip complete items if mode is shortfall
+
+                            reportItems.push({
+                                orderId: o.id,
+                                docNo: o.docNo,
+                                date: o.date,
+                                rawDate: o.rawDate || o.date,
+                                branch: o.customer,
+                                sku: i.sku,
+                                name: i.name,
+                                req: req,
+                                pack: pack,
+                                miss: miss > 0 ? miss : 0
+                            });
+
+                            stats.totalReq += req;
+                            stats.totalPack += pack;
+                            if (miss > 0) stats.totalMiss += miss;
+                            uniqueOrderIds.add(o.id);
+                        });
+                    });
+
+                    stats.totalOrd = uniqueOrderIds.size;
+                    app.reportData = reportItems; // Save for export
+
+                    // Render Stats
+                    document.getElementById('rep-stats').innerHTML = `
+                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm"><p class="text-xs text-slate-500 font-bold mb-1">ออเดอร์ที่พบ</p><p class="text-2xl font-black text-slate-800">${stats.totalOrd} <span class="text-sm font-normal text-slate-400">บิล</span></p></div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm"><p class="text-xs text-slate-500 font-bold mb-1">ยอดสั่งรวม</p><p class="text-2xl font-black text-blue-600">${stats.totalReq} <span class="text-sm font-normal text-slate-400">ชิ้น</span></p></div>
+                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm"><p class="text-xs text-slate-500 font-bold mb-1">ยอดจัดส่งรวม</p><p class="text-2xl font-black text-emerald-600">${stats.totalPack} <span class="text-sm font-normal text-slate-400">ชิ้น</span></p></div>
+                        <div class="bg-white p-4 rounded-2xl border ${stats.totalMiss > 0 ? 'border-rose-200 bg-rose-50' : 'border-slate-100'} shadow-sm"><p class="text-xs ${stats.totalMiss > 0 ? 'text-rose-500' : 'text-slate-500'} font-bold mb-1">ยอดส่งขาด</p><p class="text-2xl font-black ${stats.totalMiss > 0 ? 'text-rose-600' : 'text-slate-800'}">${stats.totalMiss} <span class="text-sm font-normal ${stats.totalMiss > 0 ? 'text-rose-400' : 'text-slate-400'}">ชิ้น</span></p></div>
+                    `;
+
+                    // Render Table
+                    const tbody = document.getElementById('rep-table-body');
+                    if (reportItems.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400">ไม่พบข้อมูลตามเงื่อนไขที่ค้นหา</td></tr>`;
+                    } else {
+                        // Sort by date desc
+                        reportItems.sort((a,b) => new Date(b.rawDate) - new Date(a.rawDate));
+                        
+                        tbody.innerHTML = reportItems.map(item => `
+                            <tr class="hover:bg-slate-50 transition-colors group">
+                                <td class="p-4 text-slate-500">${app.ui.escapeHTML(item.date.split(',')[0])}</td>
+                                <td class="p-4"><a href="javascript:void(0)" onclick="app.router('detail', '${app.ui.escapeStr(item.orderId)}')" class="font-bold text-blue-600 hover:underline">${app.ui.escapeHTML(item.docNo)}</a></td>
+                                <td class="p-4 text-slate-700">${app.ui.escapeHTML(item.branch)}</td>
+                                <td class="p-4 font-mono text-xs text-slate-400">${app.ui.escapeHTML(item.sku || '-')}</td>
+                                <td class="p-4 font-bold text-slate-700">${app.ui.escapeHTML(item.name)}</td>
+                                <td class="p-4 text-center">${item.req}</td>
+                                <td class="p-4 text-center text-emerald-600 font-bold">${item.pack}</td>
+                                <td class="p-4 text-center ${item.miss > 0 ? 'text-rose-600 font-black bg-rose-50/50' : 'text-slate-300'}">${item.miss > 0 ? item.miss : '-'}</td>
+                            </tr>
+                        `).join('');
+                    }
+                    lucide.createIcons();
+                },
+
+                exportReportExcel() {
+                    if (!app.reportData || app.reportData.length === 0) {
+                        return app.ui.toast('ไม่มีข้อมูลสำหรับ Export', 'warning');
+                    }
+
+                    // Prepare data for Excel
+                    const excelData = app.reportData.map(item => ({
+                        'วันที่': item.date.split(',')[0],
+                        'เอกสาร/ออเดอร์': item.docNo,
+                        'สาขา/ลูกค้า': item.branch,
+                        'รหัสสินค้า (SKU)': item.sku,
+                        'ชื่อสินค้า': item.name,
+                        'ยอดสั่ง (ชิ้น)': item.req,
+                        'ยอดจัดส่ง (ชิ้น)': item.pack,
+                        'ยอดส่งขาด (ชิ้น)': item.miss
+                    }));
+
+                    const ws = XLSX.utils.json_to_sheet(excelData);
+                    
+                    // Auto width
+                    const wscols = [
+                        {wch: 12}, // Date
+                        {wch: 15}, // Doc
+                        {wch: 25}, // Branch
+                        {wch: 15}, // SKU
+                        {wch: 40}, // Name
+                        {wch: 10}, // Req
+                        {wch: 10}, // Pack
+                        {wch: 10}  // Miss
+                    ];
+                    ws['!cols'] = wscols;
+
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Report");
+                    
+                    const fileName = `Warehouse_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+                    XLSX.writeFile(wb, fileName);
+                    app.ui.toast('Export ไฟล์ Excel สำเร็จ', 'success');
+                },
+
                 renderInventory(container) {
                     container.innerHTML = `
                         <div class="p-4 lg:p-8 space-y-6 animate-fade-in max-w-5xl mx-auto pb-32">
@@ -589,45 +936,11 @@
                      lucide.createIcons();
                 },
 
-                renderDashboard(container) {
-                    if(!app.data.orders) return;
-                    const stats = {
-                        stock: app.data.orders.filter(o => o.status === 'pending_stock').length,
-                        qc: app.data.orders.filter(o => o.status === 'pending_qc').length,
-                        pack: app.data.orders.filter(o => o.status === 'pending_pack').length,
-                        ship: app.data.orders.filter(o => o.status === 'ready_ship').length
-                    };
-                    container.innerHTML = `
-                        <div class="p-4 lg:p-8 space-y-6 animate-fade-in max-w-5xl mx-auto">
-                            <h2 class="text-2xl font-bold text-slate-800">ภาพรวม (Dashboard)</h2>
-                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                ${this.cardStat('รอเบิก', stats.stock, 'layers', 'bg-gradient-to-br from-orange-500 to-orange-400 text-white shadow-lg shadow-orange-200')}
-                                ${this.cardStat('รอตรวจ QC', stats.qc, 'clipboard-check', 'bg-gradient-to-br from-rose-500 to-rose-400 text-white shadow-lg shadow-rose-200')}
-                                ${this.cardStat('รอแพ็ค', stats.pack, 'box', 'bg-gradient-to-br from-blue-500 to-blue-400 text-white shadow-lg shadow-blue-200')}
-                                ${this.cardStat('รอส่ง', stats.ship, 'truck', 'bg-gradient-to-br from-emerald-500 to-emerald-400 text-white shadow-lg shadow-emerald-200')}
-                            </div>
-                            <div class="bg-white rounded-3xl shadow-soft border border-slate-100 overflow-hidden mt-6">
-                                <div class="p-6 border-b border-slate-50 flex justify-between items-center"><h3 class="font-bold text-slate-700 text-lg">ออเดอร์ล่าสุด</h3></div>
-                                <div class="divide-y divide-slate-50">
-                                    ${app.data.orders.slice(0, 5).map(o => `
-                                        <div onclick="app.router('detail', '${app.ui.escapeStr(o.id)}')" class="p-5 flex items-center justify-between hover:bg-slate-50 cursor-pointer transition-colors group">
-                                            <div class="flex items-center gap-4">
-                                                <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-brand-50 group-hover:text-brand-600"><i data-lucide="package" class="w-5 h-5"></i></div>
-                                                <div><div class="font-bold text-sm text-slate-800">${app.ui.escapeHTML(o.customer)}</div><div class="text-xs text-slate-400">${app.ui.escapeHTML(o.docNo)} • ${o.items.length} รายการ</div></div>
-                                            </div>
-                                            ${app.ui.badge(o.status)}
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        </div>`;
-                },
-
                 renderCreateOrder(container) {
                     container.innerHTML = `
                         <div class="animate-slide-in-right min-h-full flex flex-col bg-slate-50 relative pb-20">
                             <div class="bg-white/90 backdrop-blur border-b border-slate-200 p-4 sticky top-0 z-30 flex items-center gap-3 shadow-sm">
-                                <button onclick="app.router(app.activeTab)" class="p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-full"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
+                                <button onclick="app.router(app.currentPage)" class="p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-full"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
                                 <h2 class="font-bold text-slate-800 text-lg">สร้างออเดอร์ใหม่</h2>
                             </div>
                             <div class="p-6 space-y-6 w-full flex-1">
@@ -637,7 +950,7 @@
                                         <div><label class="text-xs font-bold text-slate-500 mb-1.5 block">เลขที่เอกสาร</label><input type="text" id="new-doc" class="input-field w-full" placeholder="PO-XXXX"></div>
                                         <div><label class="text-xs font-bold text-slate-500 mb-1.5 block">วันที่</label><input type="date" id="new-date" class="input-field w-full"></div>
                                     </div>
-                                    <div><label class="text-xs font-bold text-slate-500 mb-1.5 block">ชื่อลูกค้า</label><input type="text" id="new-customer" class="input-field w-full" placeholder="ระบุชื่อลูกค้า..."></div>
+                                    <div><label class="text-xs font-bold text-slate-500 mb-1.5 block">ชื่อสาขา / ลูกค้า</label><input type="text" id="new-customer" class="input-field w-full" placeholder="ระบุชื่อลูกค้า หรือ สาขา..."></div>
                                 </div>
                                 <div class="bg-white p-5 rounded-3xl shadow-soft border border-slate-100 space-y-4">
                                     <div class="flex justify-between items-center">
@@ -712,7 +1025,7 @@
                     container.innerHTML = `
                         <div class="animate-slide-in-right h-full flex flex-col bg-slate-50">
                             <div class="bg-white/80 backdrop-blur-md border-b border-slate-200 p-4 sticky top-0 z-20 flex items-center gap-3 shadow-sm">
-                                <button onclick="app.router(app.activeTab)" class="p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-full"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
+                                <button onclick="app.router(app.currentPage === 'detail' ? 'dashboard' : app.currentPage)" class="p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-full"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
                                 <div class="flex-1 min-w-0"><h2 class="font-bold text-slate-800 truncate text-lg">${app.ui.escapeHTML(order.customer)}</h2><div class="flex items-center gap-2 text-xs text-slate-500 mt-0.5"><span>${app.ui.escapeHTML(order.docNo)}</span></div></div>
                                 <div class="ml-auto scale-90 origin-right">${app.ui.badge(order.status)}</div>
                             </div>
@@ -830,7 +1143,7 @@
 
                         mainContent = `
                         <div class="flex-1 w-full min-w-0">
-                            ${app.currentUser.role === 'manager' ? `
+                            ${app.currentUser.role === 'manager' || app.currentUser.role === 'admin' ? `
                                 <div class="mb-4 animate-fade-in">
                                     <button onclick="app.logic.openEditOrderModal('${app.ui.escapeStr(order.id)}')" class="w-full py-3 bg-white border-2 border-orange-100 text-orange-600 rounded-2xl text-sm font-bold shadow-sm hover:bg-orange-50 hover:border-orange-300 transition-all flex items-center justify-center gap-2">
                                         <i data-lucide="edit-3" class="w-5 h-5"></i> แก้ไขรายการออเดอร์ (กรณีคีย์ผิด)
@@ -911,7 +1224,7 @@
                                                 <div class="flex justify-between items-start mb-2">
                                                     <div class="flex items-center gap-2 pr-2">
                                                         <h3 class="font-bold text-slate-800 text-base truncate ${isSelected ? 'text-blue-700' : ''} leading-tight">${app.ui.escapeHTML(item.name)}</h3>
-                                                        ${app.currentUser.role === 'manager' ? `
+                                                        ${app.currentUser.role === 'manager' || app.currentUser.role === 'admin' ? `
                                                             <button onclick="event.stopPropagation(); app.logic.openEditProductModal('${app.ui.escapeStr(item.sku)}', '${app.ui.escapeStr(order.id)}')" class="p-1 text-slate-300 hover:text-orange-500 transition-colors shrink-0" title="แก้ไข Master Data">
                                                                 <i data-lucide="edit-2" class="w-3 h-3"></i>
                                                             </button>
@@ -956,12 +1269,13 @@
                                 <i data-lucide="package" class="w-8 h-8 opacity-50"></i>
                             </div>
                             <div class="space-y-3">${order.items.map((item, idx) => {
+                            const isShortfall = (item.packed_qty || 0) < item.qty;
                             return `<div class="bg-white p-4 rounded-3xl border border-slate-100 flex items-center justify-between shadow-soft">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center"><i data-lucide="check" class="w-4 h-4"></i></div>
+                                    <div class="w-8 h-8 ${isShortfall ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'} rounded-full flex items-center justify-center"><i data-lucide="${isShortfall ? 'alert-circle' : 'check'}" class="w-4 h-4"></i></div>
                                     <div>
                                         <div class="font-bold text-slate-700 text-sm">${app.ui.escapeHTML(item.name)}</div>
-                                        <div class="text-xs text-slate-400">แพ็คแล้ว: ${item.packed_qty || item.qty} / ${item.qty}</div>
+                                        <div class="text-xs ${isShortfall ? 'text-orange-500 font-bold' : 'text-slate-400'}">แพ็คแล้ว: ${item.packed_qty || 0} / ${item.qty}</div>
                                     </div>
                                 </div>
                             </div>`;
@@ -1000,7 +1314,7 @@
                                                     }).join('')}
                                                 </div>
                                                 
-                                                ${app.currentUser.role === 'manager' && canEdit ? `
+                                                ${(app.currentUser.role === 'manager' || app.currentUser.role === 'admin') && canEdit ? `
                                                     <div class="flex gap-2 mt-auto">
                                                         <button onclick="app.logic.openPrintLabelModal('${app.ui.escapeStr(order.id)}', ${index})" class="flex-1 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 text-[10px] font-bold hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 transition-colors flex items-center justify-center gap-1 opacity-80 group-hover:opacity-100">
                                                             <i data-lucide="printer" class="w-3 h-3"></i> Label
@@ -1025,12 +1339,47 @@
                     return `<div class="flex flex-col lg:flex-row gap-6 items-start">${mainContent}${rightColumnHtml}</div>`;
                 },
                 renderReadOnlyContent(order) {
-                    return `<div class="space-y-3">${order.items.map(item => `<div class="bg-white p-5 rounded-3xl border border-slate-100 flex justify-between items-center shadow-soft"><div><span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 mb-1 inline-block">${app.ui.escapeHTML(item.sku || '-')}</span><div class="font-bold text-slate-700">${app.ui.escapeHTML(item.name)}</div><div class="text-xs text-slate-400 mt-1">ยอดสั่ง: ${item.qty} ${app.ui.escapeHTML(item.unit)}</div></div><div class="bg-slate-50 px-4 py-2 rounded-xl border border-slate-100"><span class="font-bold text-slate-700 text-lg">${item.qty}</span></div></div>`).join('')}${order.status === 'completed' ? `<div class="bg-emerald-50 text-emerald-600 p-6 rounded-3xl text-center font-bold border border-emerald-100 flex flex-col items-center gap-2"><i data-lucide="check-circle" class="w-8 h-8"></i>ออเดอร์เสร็จสมบูรณ์</div>` : ''}</div>`;
+                    return `<div class="space-y-3">${order.items.map(item => {
+                        const isShortfall = order.status === 'completed' && (item.packed_qty || 0) < item.qty;
+                        return `<div class="bg-white p-5 rounded-3xl border border-slate-100 flex justify-between items-center shadow-soft">
+                            <div><span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 mb-1 inline-block">${app.ui.escapeHTML(item.sku || '-')}</span><div class="font-bold text-slate-700">${app.ui.escapeHTML(item.name)}</div><div class="text-xs text-slate-400 mt-1">ยอดสั่ง: ${item.qty} ${app.ui.escapeHTML(item.unit)}</div></div>
+                            <div class="${isShortfall ? 'bg-rose-50 border-rose-200 text-rose-600' : 'bg-slate-50 border-slate-100 text-slate-700'} px-4 py-2 rounded-xl border text-center flex flex-col justify-center min-w-[80px]">
+                                <span class="font-bold text-lg">${item.packed_qty || 0}</span>
+                                ${isShortfall ? `<span class="text-[10px] font-bold uppercase mt-0.5 tracking-wider">ส่งขาด ${item.qty - (item.packed_qty || 0)}</span>` : ''}
+                            </div>
+                        </div>`;
+                    }).join('')}${order.status === 'completed' ? `<div class="bg-emerald-50 text-emerald-600 p-6 rounded-3xl text-center font-bold border border-emerald-100 flex flex-col items-center gap-2"><i data-lucide="check-circle" class="w-8 h-8"></i>ออเดอร์เสร็จสมบูรณ์</div>` : ''}</div>`;
                 },
                 cardStat(label, val, icon, bgClass) { return `<div class="bg-white p-5 rounded-3xl shadow-soft border border-slate-100 flex items-center justify-between"><div><p class="text-xs text-slate-500 font-bold uppercase tracking-wide mb-1">${label}</p><p class="text-3xl font-bold text-slate-800">${val}</p></div><div class="p-3.5 rounded-2xl ${bgClass}"><i data-lucide="${icon}" class="w-6 h-6"></i></div></div>`; }
             },
 
             logic: {
+                filterReportProducts(text) { app.views.renderReportProductList(text); },
+                
+                toggleReportProduct(checkbox) {
+                    const sku = checkbox.value;
+                    if(checkbox.checked) {
+                        app.session.reportSelectedProducts.push(sku);
+                    } else {
+                        app.session.reportSelectedProducts = app.session.reportSelectedProducts.filter(s => s !== sku);
+                    }
+                    this.updateReportProductLabel();
+                },
+                
+                updateReportProductLabel() {
+                    const label = document.getElementById('rep-product-label');
+                    if(!label) return;
+                    const selected = app.session.reportSelectedProducts;
+                    if(selected.length === 0) {
+                        label.innerText = '-- ทุกสินค้า --';
+                    } else if(selected.length === 1) {
+                        const p = app.data.products.find(p => p.sku === selected[0]);
+                        label.innerText = p ? p.name : selected[0];
+                    } else {
+                        label.innerText = `เลือกแล้ว ${selected.length} รายการ`;
+                    }
+                },
+
                 openEditOrderModal(orderId) {
                     const order = app.data.orders.find(o => o.id === orderId);
                     if (!order) return;
@@ -1678,8 +2027,21 @@
                         if(name && qty) items.push({ sku, name, qty: parseInt(qty), unit: unit || 'ชิ้น', picked: 0, lot: '', passed: 0, failed: 0, picks: [], qc_reason: '' }); 
                     }); 
                     if(!customer || items.length === 0) return app.ui.toast('กรอกข้อมูลไม่ครบ', 'error');
-                    let dateStr = dateInput ? new Date(dateInput).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit'}) : new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit'});
-                    const newOrder = { id: `ORD-${Date.now().toString().slice(-4)}`, docNo, customer, date: dateStr, status: 'pending_stock', items, logs: [{ action: 'สร้างออเดอร์', time: new Date().toLocaleString('th-TH'), user: app.currentUser.name }] }; 
+                    
+                    const now = new Date();
+                    let dateStr = dateInput ? new Date(dateInput).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit'}) : now.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit'});
+                    let rawDateStr = dateInput ? new Date(dateInput).toISOString() : now.toISOString();
+
+                    const newOrder = { 
+                        id: `ORD-${Date.now().toString().slice(-4)}`, 
+                        docNo, 
+                        customer, 
+                        date: dateStr, 
+                        rawDate: rawDateStr,
+                        status: 'pending_stock', 
+                        items, 
+                        logs: [{ action: 'สร้างออเดอร์', time: now.toLocaleString('th-TH'), user: app.currentUser.name }] 
+                    }; 
                     app.data.orders.unshift(newOrder); app.saveData(); app.router('stock'); app.ui.toast('สร้างออเดอร์สำเร็จ'); 
                 },
 
@@ -1832,7 +2194,6 @@
 
                     // Collect data
                     const summary = {};
-                    // Combine packed boxes and active box
                     const allBoxes = [...(order.boxes || [])];
                     if (order.active_box && order.active_box.total_qty > 0) {
                         allBoxes.push(order.active_box);
@@ -1856,7 +2217,6 @@
                         });
                     });
 
-                    // Build HTML
                     let html = `<div class="max-h-[60vh] overflow-y-auto space-y-4 pr-2" id="pack-summary-content">`;
                     Object.values(summary).forEach(item => {
                         let boxTags = item.boxes.map(b => `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 text-[10px] px-2 py-1 rounded-lg font-bold">${b.boxName} : ${b.qty}</span>`).join('');
