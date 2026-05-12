@@ -255,7 +255,7 @@
                                                 }
                                             }
                                         }
-                                    } 
+                                    }
                                 } else {
                                     window.firebaseHandler.save(window.app.data);
                                 }
@@ -1288,18 +1288,30 @@
                         rightColumnHtml = `
                             <div class="w-full lg:w-80 shrink-0 lg:sticky lg:top-4 mt-8 lg:mt-0">
                                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
-                                    <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
-                                        <h3 class="font-bold text-slate-700 flex items-center gap-2">
-                                            <i data-lucide="package-check" class="w-5 h-5 text-emerald-500"></i> 
-                                            แพ็คเสร็จแล้ว (${order.boxes.length})
-                                        </h3>
-                                        <button onclick="app.logic.showPackSummary('${app.ui.escapeStr(order.id)}')" class="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-1 shadow-sm">
-                                            <i data-lucide="file-bar-chart" class="w-3 h-3"></i> สรุปการแพ็ค
-                                        </button>
+                                    <div class="flex flex-col gap-2 border-b border-slate-100 pb-3 mb-4">
+                                        <div class="flex justify-between items-center">
+                                            <h3 class="font-bold text-slate-700 flex items-center gap-2">
+                                                <i data-lucide="package-check" class="w-5 h-5 text-emerald-500"></i> 
+                                                แพ็คเสร็จแล้ว (${order.boxes.length})
+                                            </h3>
+                                            <div class="flex gap-1.5 flex-wrap justify-end">
+                                                <button onclick="app.logic.bulkPrintLabels('${app.ui.escapeStr(order.id)}')" class="text-[10px] font-bold bg-blue-50 text-blue-600 px-2.5 py-1.5 rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1 shadow-sm border border-blue-100" title="พิมพ์ใบแปะหน้ากล่องที่เลือก">
+                                                    <i data-lucide="printer" class="w-3.5 h-3.5"></i> พิมพ์ที่เลือก
+                                                </button>
+                                                <button onclick="app.logic.showPackSummary('${app.ui.escapeStr(order.id)}')" class="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2.5 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-1 shadow-sm border border-indigo-100">
+                                                    <i data-lucide="file-bar-chart" class="w-3.5 h-3.5"></i> สรุป
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-2 text-xs text-slate-500 mt-1 bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-100">
+                                            <input type="checkbox" id="select-all-boxes" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer w-4 h-4" onchange="document.querySelectorAll('.box-print-cb').forEach(cb => cb.checked = this.checked)">
+                                            <label for="select-all-boxes" class="cursor-pointer select-none font-bold text-slate-600">เลือกกล่องทั้งหมดเพื่อพิมพ์</label>
+                                        </div>
                                     </div>
                                     <div class="space-y-3 max-h-[calc(100vh-200px)] overflow-y-auto pr-1">
                                         ${order.boxes.map((box, index) => `
-                                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 hover:bg-white hover:shadow-md transition-all group flex flex-col h-full">
+                                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 hover:bg-white hover:shadow-md transition-all group flex flex-col h-full relative pl-9 cursor-pointer" onclick="const cb = this.querySelector('.box-print-cb'); cb.checked = !cb.checked; event.stopPropagation();">
+                                                <input type="checkbox" class="box-print-cb absolute left-3 top-3.5 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer z-10" value="${index}" onclick="event.stopPropagation()">
                                                 <div class="flex justify-between items-center mb-2">
                                                     <span class="font-bold text-slate-800 text-sm">กล่องที่ ${index + 1}</span>
                                                     <span class="text-[10px] font-bold bg-white border border-slate-200 text-slate-500 px-2 py-0.5 rounded-lg shadow-sm">${box.total_qty} ชิ้น</span>
@@ -1315,17 +1327,17 @@
                                                 </div>
                                                 
                                                 ${(app.currentUser.role === 'manager' || app.currentUser.role === 'admin') && canEdit ? `
-                                                    <div class="flex gap-2 mt-auto">
+                                                    <div class="flex gap-2 mt-auto" onclick="event.stopPropagation()">
                                                         <button onclick="app.logic.openPrintLabelModal('${app.ui.escapeStr(order.id)}', ${index})" class="flex-1 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 text-[10px] font-bold hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 transition-colors flex items-center justify-center gap-1 opacity-80 group-hover:opacity-100">
-                                                            <i data-lucide="printer" class="w-3 h-3"></i> Label
+                                                            <i data-lucide="settings" class="w-3 h-3"></i> แก้ไข Label
                                                         </button>
                                                         <button onclick="app.logic.openEditBoxModal('${app.ui.escapeStr(order.id)}', ${index})" class="flex-1 py-1.5 rounded-lg bg-white border border-orange-200 text-orange-600 text-[10px] font-bold hover:text-orange-700 hover:border-orange-300 hover:bg-orange-50 transition-colors flex items-center justify-center gap-1 opacity-80 group-hover:opacity-100">
                                                             <i data-lucide="edit" class="w-3 h-3"></i> รื้อกล่อง
                                                         </button>
                                                     </div>
                                                 ` : `
-                                                    <button onclick="app.logic.openPrintLabelModal('${app.ui.escapeStr(order.id)}', ${index})" class="mt-auto w-full py-2 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs font-bold hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 transition-colors flex items-center justify-center gap-1.5 opacity-60 group-hover:opacity-100">
-                                                        <i data-lucide="printer" class="w-3 h-3"></i> พิมพ์ Label
+                                                    <button onclick="event.stopPropagation(); app.logic.openPrintLabelModal('${app.ui.escapeStr(order.id)}', ${index})" class="mt-auto w-full py-2 rounded-lg bg-white border border-slate-200 text-slate-600 text-xs font-bold hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 transition-colors flex items-center justify-center gap-1.5 opacity-60 group-hover:opacity-100">
+                                                        <i data-lucide="settings" class="w-3 h-3"></i> แก้ไข Label
                                                     </button>
                                                 `}
                                             </div>
@@ -1354,6 +1366,127 @@
             },
 
             logic: {
+                bulkPrintLabels(orderId) {
+                    const order = app.data.orders.find(o => o.id === orderId);
+                    if (!order) return;
+
+                    const checkboxes = document.querySelectorAll('.box-print-cb:checked');
+                    if (checkboxes.length === 0) {
+                        return app.ui.toast('กรุณาเลือกกล่องที่ต้องการพิมพ์อย่างน้อย 1 กล่อง', 'warning');
+                    }
+
+                    let allLabelsContent = '';
+                    const today = new Date().toLocaleString('th-TH');
+
+                    checkboxes.forEach((cb, i) => {
+                        const boxIdx = parseInt(cb.value);
+                        const box = order.boxes[boxIdx];
+                        const boxNumber = boxIdx + 1;
+
+                        let rows = '';
+                        let totalQty = 0;
+                        Object.entries(box.items).forEach(([sku, qty]) => {
+                             const prod = app.data.products.find(p => p.sku === sku);
+                             const name = prod ? prod.name : sku;
+                             totalQty += qty;
+                             rows += `
+                                <tr class="border-b border-gray-300">
+                                    <td class="py-2 pr-2 align-top">
+                                        <div class="font-bold text-sm text-gray-800">${app.ui.escapeHTML(name)}</div>
+                                        <div class="text-[10px] text-gray-500 font-mono">${app.ui.escapeHTML(sku)}</div>
+                                    </td>
+                                    <td class="text-right align-top font-bold text-lg py-2">${qty}</td>
+                                </tr>`;
+                        });
+
+                        const labelHtml = `
+                            <div class="label-container flex justify-center items-center p-4" style="${i > 0 ? 'page-break-before: always;' : ''}">
+                                <div class="w-[350px] mx-auto border-2 border-black p-4 rounded-xl bg-white text-black font-sans">
+                                    <div class="mb-4 text-center border-b-2 border-black pb-4">
+                                        <div class="text-xs text-gray-500 uppercase font-bold">Customer</div>
+                                        <div class="text-3xl font-black leading-tight mb-2">${app.ui.escapeHTML(order.customer)}</div>
+                                        <div class="flex justify-center gap-3 mt-1 text-xs text-gray-500">
+                                            <span>${app.ui.escapeHTML(order.docNo)}</span>
+                                            <span>•</span>
+                                            <span>${today}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="text-center mb-6">
+                                        <div class="inline-block border-2 border-black text-2xl font-bold px-4 py-2 rounded-lg mb-1">BOX ${boxNumber}</div>
+                                        <div class="text-xs font-bold uppercase tracking-wide text-gray-400">PACKING LABEL</div>
+                                    </div>
+
+                                    <table class="w-full mb-4">
+                                        <thead>
+                                            <tr class="text-xs uppercase text-gray-500 border-b-2 border-black">
+                                                <th class="text-left py-1">Item</th>
+                                                <th class="text-right py-1">Qty</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${rows}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="border-t-2 border-black">
+                                                <td class="font-black py-2 text-lg">TOTAL</td>
+                                                <td class="text-right font-black py-2 text-lg">${totalQty}</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+
+                                    <div class="text-center text-[10px] text-gray-400 mt-4 border-t border-gray-200 pt-2">
+                                        Checked by: ${app.ui.escapeHTML(app.currentUser.name)} • Warehouse QC System
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        allLabelsContent += labelHtml;
+                    });
+
+                    let printFrame = document.getElementById('print-frame');
+                    if (!printFrame) {
+                        printFrame = document.createElement('iframe');
+                        printFrame.id = 'print-frame';
+                        printFrame.style.position = 'fixed';
+                        printFrame.style.right = '0';
+                        printFrame.style.bottom = '0';
+                        printFrame.style.width = '0';
+                        printFrame.style.height = '0';
+                        printFrame.style.border = '0';
+                        document.body.appendChild(printFrame);
+                    }
+
+                    const doc = printFrame.contentWindow.document;
+                    doc.open();
+                    doc.write(`
+                        <html>
+                        <head>
+                            <title>Bulk Print Labels</title>
+                            <script src="https://cdn.tailwindcss.com"><\/script>
+                            <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+                            <style>
+                                body { font-family: 'Sarabun', sans-serif; padding: 20px; margin: 0; }
+                                @media print { 
+                                    @page { size: auto; margin: 0mm; } 
+                                    body { margin: 0; -webkit-print-color-adjust: exact; }
+                                    .label-container { break-inside: avoid; min-height: 100vh; }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            ${allLabelsContent}
+                            <script>
+                                setTimeout(() => {
+                                    window.print();
+                                }, 800); 
+                            <\/script>
+                        </body>
+                        </html>
+                    `);
+                    doc.close();
+                },
+                
                 filterReportProducts(text) { app.views.renderReportProductList(text); },
                 
                 toggleReportProduct(checkbox) {
