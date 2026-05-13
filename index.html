@@ -1400,8 +1400,8 @@
                         });
 
                         const labelHtml = `
-                            <div class="label-container flex justify-center items-center p-4" style="${i > 0 ? 'page-break-before: always;' : ''}">
-                                <div class="w-[350px] mx-auto border-2 border-black p-4 rounded-xl bg-white text-black font-sans">
+                            <div class="label-container flex justify-center items-start pt-8 pb-4" style="${i < checkboxes.length - 1 ? 'page-break-after: always;' : ''}">
+                                <div class="w-[350px] mx-auto border-2 border-black p-4 rounded-xl bg-white text-black font-sans shadow-sm">
                                     <div class="mb-4 text-center border-b-2 border-black pb-4">
                                         <div class="text-xs text-gray-500 uppercase font-bold">Customer</div>
                                         <div class="text-3xl font-black leading-tight mb-2">${app.ui.escapeHTML(order.customer)}</div>
@@ -1469,8 +1469,8 @@
                                 body { font-family: 'Sarabun', sans-serif; padding: 20px; margin: 0; }
                                 @media print { 
                                     @page { size: auto; margin: 0mm; } 
-                                    body { margin: 0; -webkit-print-color-adjust: exact; }
-                                    .label-container { break-inside: avoid; min-height: 100vh; }
+                                    body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
+                                    .label-container { break-inside: avoid; height: auto; padding-top: 10mm !important; }
                                 }
                             </style>
                         </head>
@@ -2554,7 +2554,7 @@
                     });
 
                     const labelContent = `
-                        <div class="w-[350px] mx-auto border-2 border-black p-4 rounded-xl bg-white text-black font-sans">
+                        <div class="w-[350px] mx-auto border-2 border-black p-4 rounded-xl bg-white text-black font-sans shadow-sm">
                             <div class="mb-4 text-center border-b-2 border-black pb-4">
                                 <div class="text-xs text-gray-500 uppercase font-bold">Customer</div>
                                 <div class="text-3xl font-black leading-tight mb-2">${app.ui.escapeHTML(order.customer)}</div> 
@@ -2619,13 +2619,13 @@
                                 body { font-family: 'Sarabun', sans-serif; padding: 20px; margin: 0; }
                                 @media print { 
                                     @page { size: auto; margin: 0mm; } 
-                                    body { margin: 0; -webkit-print-color-adjust: exact; }
-                                    .label-container { break-inside: avoid; }
+                                    body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
+                                    .label-container { break-inside: avoid; height: auto; padding-top: 10mm !important; }
                                 }
                             </style>
                         </head>
                         <body>
-                            <div class="label-container flex justify-center items-center p-4">
+                            <div class="label-container flex justify-center items-start pt-8 pb-4">
                                 ${labelContent}
                             </div>
                             <script>
