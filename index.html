@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Warehouse QC Enterprise v3.5 (Dashboard & Report Update)</title>
+    <title>Warehouse QC Enterprise v3.6 (Bulk Delete & Auto Pick)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -84,6 +84,10 @@
         .progress-bar { transition: width 0.3s ease; }
         
         #cloud-status { position: fixed; bottom: 10px; right: 10px; z-index: 100; font-size: 11px; opacity: 0.9; background: white; padding: 6px 12px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 6px; font-weight: 500; }
+        
+        /* Custom Checkbox Styling for bulk operations */
+        .bulk-cb { width: 1.25rem; height: 1.25rem; border-radius: 0.375rem; border-color: #cbd5e1; color: #ef4444; }
+        .bulk-cb:focus { ring-color: #fca5a5; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans h-screen flex flex-col overflow-hidden selection:bg-brand-100">
@@ -108,7 +112,7 @@
                     <i data-lucide="package-check" class="w-8 h-8 text-white"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-800">Warehouse QC</h1>
-                <p class="text-sm text-slate-400">Enterprise Edition v3.5</p>
+                <p class="text-sm text-slate-400">Enterprise Edition v3.6</p>
             </div>
             <div class="space-y-4">
                 <div><label class="text-xs font-bold text-slate-500 mb-1.5 block ml-1">ชื่อผู้ใช้</label><input type="text" id="login-username" class="input-field w-full" placeholder="username"></div>
@@ -146,7 +150,7 @@
                 <button onclick="app.auth.logout()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-50 transition-all">
                     <i data-lucide="log-out" class="w-5 h-5"></i> ออกจากระบบ
                 </button>
-                <p class="text-[10px] text-slate-400 text-center mt-3 font-mono">v3.5 (Enterprise)</p>
+                <p class="text-[10px] text-slate-400 text-center mt-3 font-mono">v3.6 (Enterprise)</p>
             </div>
         </aside>
 
@@ -905,6 +909,8 @@
 
                 renderHistory(container) {
                     const list = app.data.orders ? app.data.orders.filter(o => o.status === 'completed') : [];
+                    const canDelete = app.currentUser.role === 'admin' || app.currentUser.role === 'manager';
+
                     container.innerHTML = `
                         <div class="p-4 lg:p-8 space-y-6 animate-fade-in pb-32 max-w-3xl mx-auto">
                             <div class="flex items-center gap-4 mb-6">
@@ -914,12 +920,13 @@
                             <div class="space-y-4">
                                 ${list.length === 0 ? `<div class="text-center py-20 text-slate-400 border-2 border-dashed border-slate-200 rounded-3xl">ไม่พบประวัติ</div>` : list.map(o => `
                                     <div onclick="app.router('detail', '${app.ui.escapeStr(o.id)}')" class="bg-white p-6 rounded-3xl shadow-soft border border-slate-100 active:scale-[0.98] transition-all cursor-pointer hover:shadow-lg hover:border-brand-200 relative group">
+                                        ${canDelete ? `
                                         <div class="absolute top-4 right-4 z-10">
                                             <button onclick="event.stopPropagation(); app.logic.deleteOrder('${app.ui.escapeStr(o.id)}')" class="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors" title="ลบออเดอร์">
                                                 <i data-lucide="trash-2" class="w-5 h-5"></i>
                                             </button>
-                                        </div>
-                                        <div class="flex justify-between items-start mb-3"><span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-lg border border-slate-200">${app.ui.escapeHTML(o.id)}</span><span class="text-xs text-slate-400">${app.ui.escapeHTML(o.date)}</span></div>
+                                        </div>` : ''}
+                                        <div class="flex justify-between items-start mb-3"><span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-lg border border-slate-200">${app.ui.escapeHTML(o.id)}</span><span class="text-xs text-slate-400 pr-8">${app.ui.escapeHTML(o.date)}</span></div>
                                         <h3 class="font-bold text-slate-800 text-lg mb-1 group-hover:text-brand-600 transition-colors pr-8">${app.ui.escapeHTML(o.customer)}</h3>
                                         <p class="text-sm text-slate-500 bg-slate-50 px-2 py-1 rounded-lg inline-block mb-3"><i data-lucide="file-text" class="w-3 h-3 inline mr-1"></i>${app.ui.escapeHTML(o.docNo)}</p>
                                         <div class="flex items-center justify-between border-t border-slate-50 pt-4">
@@ -957,7 +964,7 @@
                                         <h3 class="font-bold text-slate-700 flex items-center gap-2"><i data-lucide="package" class="w-5 h-5 text-brand-500"></i> รายการสินค้า</h3>
                                         <button onclick="app.logic.openImportOrderExcel()" class="text-xs font-bold bg-green-50 text-green-600 px-3 py-1.5 rounded-lg border border-green-100 hover:bg-green-100 flex items-center gap-1 transition-colors"><i data-lucide="file-down" class="w-4 h-4"></i> Import Excel / PDF</button>
                                     </div>
-                                    <div class="grid grid-cols-[180px_1fr_100px_100px_60px] gap-3 text-xs font-bold text-slate-400 px-2">
+                                    <div class="grid grid-cols-[180px_1fr_100px_100px_60px] gap-3 text-xs font-bold text-slate-400 px-2 hidden md:grid">
                                         <div>SKU</div>
                                         <div>ชื่อสินค้า (ค้นหา)</div>
                                         <div class="text-center">จน.</div>
@@ -969,7 +976,7 @@
                                 </div>
                             </div>
                             <div class="fixed bottom-0 w-full bg-white/90 backdrop-blur border-t border-slate-200 p-5 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-                                <div class="w-full"><button onclick="app.logic.submitNewOrder()" class="btn-main btn-blue">บันทึกออเดอร์</button></div>
+                                <div class="w-full max-w-5xl mx-auto"><button onclick="app.logic.submitNewOrder()" class="btn-main btn-blue">บันทึกออเดอร์</button></div>
                             </div>
                         </div>`;
                     document.getElementById('new-date').valueAsDate = new Date();
@@ -989,6 +996,7 @@
                     let content = ''; let footer = '';
                     const role = app.currentUser.role;
                     const canEdit = role === 'manager' || (role === 'stock' && order.status === 'pending_stock') || (role === 'qc' && order.status === 'pending_qc') || (role === 'pack' && (order.status === 'pending_pack' || order.status === 'ready_ship')) || (role === 'admin');
+                    const canDelete = role === 'admin' || role === 'manager';
 
                     if (order.status === 'pending_stock') {
                         content = this.renderStockContent(order, canEdit);
@@ -1000,7 +1008,7 @@
                         content = this.renderPackContent(order, canEdit);
                         const allComplete = order.items.every(i => (i.packed_qty || 0) >= i.qty);
 
-                        footer = `<div class="flex gap-3 items-stretch">
+                        footer = `<div class="flex gap-3 items-stretch w-full max-w-5xl mx-auto">
                              <button class="w-24 px-2 btn-grey rounded-2xl font-bold flex flex-col items-center justify-center gap-1 text-[10px] text-slate-500 active:scale-95 transition-transform" onclick="app.logic.printPackingList('${app.ui.escapeStr(order.id)}')">
                                 <i data-lucide="printer" class="w-5 h-5"></i>
                                 <span>พิมพ์ใบรวม</span>
@@ -1013,7 +1021,7 @@
                         </div>`;
                     } else if (order.status === 'ready_ship') {
                         content = this.renderReadOnlyContent(order);
-                        footer = `<div class="flex gap-3 items-stretch">
+                        footer = `<div class="flex gap-3 items-stretch w-full max-w-5xl mx-auto">
                              <button class="${canEdit ? 'w-24 text-[10px] flex-col' : 'flex-1 text-sm h-14 flex-row'} px-2 btn-grey rounded-2xl font-bold flex items-center justify-center gap-1 text-slate-500 active:scale-95 transition-transform" onclick="app.logic.printPackingList('${app.ui.escapeStr(order.id)}')">
                                 <i data-lucide="printer" class="w-5 h-5"></i>
                                 <span>พิมพ์ใบรวม</span>
@@ -1027,13 +1035,16 @@
                             <div class="bg-white/80 backdrop-blur-md border-b border-slate-200 p-4 sticky top-0 z-20 flex items-center gap-3 shadow-sm">
                                 <button onclick="app.router(app.currentPage === 'detail' ? 'dashboard' : app.currentPage)" class="p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-full"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
                                 <div class="flex-1 min-w-0"><h2 class="font-bold text-slate-800 truncate text-lg">${app.ui.escapeHTML(order.customer)}</h2><div class="flex items-center gap-2 text-xs text-slate-500 mt-0.5"><span>${app.ui.escapeHTML(order.docNo)}</span></div></div>
-                                <div class="ml-auto scale-90 origin-right">${app.ui.badge(order.status)}</div>
+                                <div class="ml-auto flex items-center gap-2">
+                                    <div class="scale-90 origin-right">${app.ui.badge(order.status)}</div>
+                                    ${canDelete ? `<button onclick="app.logic.deleteOrder('${app.ui.escapeStr(order.id)}')" class="p-2 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl transition-colors shrink-0" title="ลบออเดอร์นี้"><i data-lucide="trash-2" class="w-5 h-5"></i></button>` : ''}
+                                </div>
                             </div>
-                            <div id="detail-scroller" class="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6 pb-40 w-full">
+                            <div id="detail-scroller" class="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6 pb-40 w-full max-w-5xl mx-auto">
                                 ${content}
                                 <div class="border-t border-slate-200 pt-8 mt-4"><h3 class="font-bold text-slate-700 mb-4 text-sm uppercase">ประวัติออเดอร์</h3><div class="space-y-0 pl-2 border-l-2 border-slate-200 ml-2">${order.logs.map(log => `<div class="relative pl-6 pb-6 last:pb-0"><div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-slate-300"></div><p class="text-sm font-bold text-slate-700">${app.ui.escapeHTML(log.action)}</p><p class="text-xs text-slate-400 mt-0.5">${app.ui.escapeHTML(log.time)} • ${app.ui.escapeHTML(log.user)}</p></div>`).join('')}</div></div>
                             </div>
-                            ${footer ? `<div class="fixed lg:absolute bottom-0 w-full lg:w-auto left-0 right-0 bg-white/90 backdrop-blur border-t border-slate-200 p-5 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">${footer}</div>` : ''}
+                            ${footer ? `<div class="fixed lg:absolute bottom-0 w-full left-0 right-0 bg-white/90 backdrop-blur border-t border-slate-200 p-5 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">${footer}</div>` : ''}
                         </div>`;
                     
                     if(order.status === 'pending_pack' && canEdit) {
@@ -1043,32 +1054,74 @@
 
                 renderList(container, status, title, icon, bgClass) {
                     const list = app.data.orders.filter(o => o.status === status);
+                    const canDelete = app.currentUser.role === 'admin' || app.currentUser.role === 'manager';
+
+                    let bulkActionHtml = '';
+                    if (canDelete && list.length > 0) {
+                        bulkActionHtml = `
+                            <div class="flex justify-between items-center bg-white p-3 rounded-2xl shadow-sm border border-slate-200 mb-4">
+                                <div class="flex items-center gap-3 text-sm text-slate-600 font-bold ml-2">
+                                    <input type="checkbox" id="select-all-orders" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" onchange="app.logic.toggleAllOrders(this)">
+                                    <label for="select-all-orders" class="cursor-pointer select-none">เลือกทั้งหมด</label>
+                                </div>
+                                <button onclick="app.logic.bulkDeleteOrders()" class="text-xs font-bold bg-red-50 text-red-600 px-4 py-2 rounded-xl border border-red-100 hover:bg-red-100 flex items-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" id="btn-bulk-delete" disabled>
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i> ลบที่เลือก (<span id="selected-count">0</span>)
+                                </button>
+                            </div>
+                        `;
+                    }
+
                     container.innerHTML = `
                         <div class="p-4 lg:p-8 space-y-6 animate-fade-in pb-32 max-w-3xl mx-auto">
                             <div class="flex items-center gap-4 mb-6">
                                 <div class="p-3 rounded-2xl ${bgClass} shadow-sm"><i data-lucide="${icon}" class="w-7 h-7"></i></div>
                                 <div><h2 class="text-2xl font-bold text-slate-800">${title}</h2><p class="text-sm text-slate-500">${list.length} รายการ</p></div>
                             </div>
+                            
+                            ${bulkActionHtml}
+
                             <div class="space-y-4">
                                 ${list.length === 0 ? `<div class="text-center py-20 text-slate-400 border-2 border-dashed border-slate-200 rounded-3xl">ไม่พบรายการ</div>` : list.map(o => `
-                                    <div onclick="app.router('detail', '${app.ui.escapeStr(o.id)}')" class="bg-white p-6 rounded-3xl shadow-soft border border-slate-100 active:scale-[0.98] transition-all cursor-pointer hover:shadow-lg hover:border-brand-200 relative group">
-                                        ${o.docNo.includes('(Rework)') ? '<div class="absolute top-0 right-0 bg-red-500 text-white text-[10px] px-3 py-1 rounded-bl-xl font-bold">Rework</div>' : ''}
-                                        <div class="flex justify-between items-start mb-3"><span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-lg border border-slate-200">${app.ui.escapeHTML(o.id)}</span><span class="text-xs text-slate-400">${app.ui.escapeHTML(o.date.split(',')[0])}</span></div>
-                                        <h3 class="font-bold text-slate-800 text-lg mb-1 group-hover:text-brand-600 transition-colors">${app.ui.escapeHTML(o.customer)}</h3>
+                                    <div onclick="if(event.target.type !== 'checkbox') app.router('detail', '${app.ui.escapeStr(o.id)}')" class="bg-white p-6 rounded-3xl shadow-soft border border-slate-100 active:scale-[0.98] transition-all cursor-pointer hover:shadow-lg hover:border-brand-200 relative group pl-6 md:pl-6">
+                                        ${canDelete ? `
+                                            <div class="absolute top-5 right-5 z-20" onclick="event.stopPropagation()">
+                                                <input type="checkbox" class="order-cb w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer shadow-sm" value="${o.id}" onchange="app.logic.updateBulkDeleteBtn()">
+                                            </div>
+                                        ` : ''}
+                                        ${o.docNo.includes('(Rework)') ? '<div class="absolute top-0 right-14 bg-red-500 text-white text-[10px] px-3 py-1 rounded-b-xl font-bold">Rework</div>' : ''}
+                                        
+                                        <div class="flex justify-between items-start mb-3 pr-8">
+                                            <span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-lg border border-slate-200">${app.ui.escapeHTML(o.id)}</span>
+                                            <span class="text-xs text-slate-400">${app.ui.escapeHTML(o.date.split(',')[0])}</span>
+                                        </div>
+                                        <h3 class="font-bold text-slate-800 text-lg mb-1 group-hover:text-brand-600 transition-colors pr-8">${app.ui.escapeHTML(o.customer)}</h3>
                                         <p class="text-sm text-slate-500 bg-slate-50 px-2 py-1 rounded-lg inline-block mb-3"><i data-lucide="file-text" class="w-3 h-3 inline mr-1"></i>${app.ui.escapeHTML(o.docNo)}</p>
-                                        <div class="flex items-center justify-between border-t border-slate-50 pt-4"><span class="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">${o.items.length} รายการสินค้า</span><i data-lucide="chevron-right" class="w-5 h-5 text-slate-300"></i></div>
+                                        <div class="flex items-center justify-between border-t border-slate-50 pt-4">
+                                            <span class="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full">${o.items.length} รายการสินค้า</span>
+                                            <i data-lucide="chevron-right" class="w-5 h-5 text-slate-300"></i>
+                                        </div>
                                     </div>
                                 `).join('')}
                             </div>
                         </div>`;
+                        lucide.createIcons();
                 },
 
                 renderStockContent(order, canEdit) {
-                    return `<div class="space-y-4">${order.items.map((item, idx) => {
+                    let topBar = '';
+                    if (canEdit) {
+                        topBar = `
+                        <div class="flex justify-end mb-4 animate-fade-in">
+                            <button onclick="app.logic.autoFillStock('${app.ui.escapeStr(order.id)}')" class="bg-indigo-50 border border-indigo-100 text-indigo-600 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-100 transition-colors flex items-center gap-2 shadow-sm group">
+                                <i data-lucide="layers" class="w-4 h-4 group-hover:scale-110 transition-transform"></i> เบิกครบตามจำนวนใบเบิก
+                            </button>
+                        </div>`;
+                    }
+                    return `${topBar}<div class="space-y-4">${order.items.map((item, idx) => {
                         const totalPicked = item.picks.reduce((a, b) => a + (parseInt(b.qty)||0), 0);
                         const statusColor = totalPicked > item.qty ? 'text-red-500' : (totalPicked < item.qty ? 'text-orange-500' : 'text-emerald-500');
                         return `<div class="bg-white rounded-3xl shadow-soft border border-slate-200 overflow-hidden">
-                            <div class="p-5 border-b border-slate-50 flex justify-between items-start bg-slate-50/30"><div><span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 mb-1 inline-block">${app.ui.escapeHTML(item.sku || '-')}</span><div class="font-bold text-slate-800 text-lg">${app.ui.escapeHTML(item.name)}</div><div class="text-sm text-slate-500 mt-1">สั่ง: <b>${item.qty}</b> ${app.ui.escapeHTML(item.unit)}</div></div><div class="text-right bg-white px-3 py-1 rounded-xl border border-slate-100"><div class="text-[10px] text-slate-400 font-bold uppercase">ยอดเบิก</div><div class="font-black text-xl ${statusColor}">${totalPicked}</div></div></div>
+                            <div class="p-5 border-b border-slate-50 flex justify-between items-start bg-slate-50/30"><div><span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 mb-1 inline-block">${app.ui.escapeHTML(item.sku || '-')}</span><div class="font-bold text-slate-800 text-lg">${app.ui.escapeHTML(item.name)}</div><div class="text-sm text-slate-500 mt-1">สั่ง: <b>${item.qty}</b> ${app.ui.escapeHTML(item.unit)}</div></div><div class="text-right bg-white px-3 py-1 rounded-xl border border-slate-100 shadow-sm"><div class="text-[10px] text-slate-400 font-bold uppercase">ยอดเบิก</div><div class="font-black text-xl ${statusColor}">${totalPicked}</div></div></div>
                             <div class="p-4 space-y-3" id="picks-container-${idx}">${this.renderPickRows(item, idx, canEdit, order.id)}</div>
                             ${canEdit ? `<div class="p-3 bg-slate-50 border-t border-slate-100"><button onclick="app.logic.addPick('${app.ui.escapeStr(order.id)}', ${idx})" class="w-full h-10 text-sm font-bold text-slate-600 bg-white border border-slate-200 hover:shadow-md rounded-xl flex items-center justify-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> เพิ่ม Lot</button></div>` : ''}
                         </div>`; }).join('')}</div>`;
@@ -1084,16 +1137,16 @@
                     let topBar = '';
                     if (canEdit) {
                         topBar = `
-                        <div class="flex justify-end mb-4">
-                            <button onclick="app.logic.passAllQC('${app.ui.escapeStr(order.id)}')" class="bg-emerald-100 text-emerald-700 px-4 py-2 rounded-xl font-bold text-sm hover:bg-emerald-200 transition-colors flex items-center gap-2 shadow-sm">
-                                <i data-lucide="check-check" class="w-4 h-4"></i> ผ่าน QC ทั้งหมด
+                        <div class="flex justify-end mb-4 animate-fade-in">
+                            <button onclick="app.logic.passAllQC('${app.ui.escapeStr(order.id)}')" class="bg-emerald-100 text-emerald-700 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-200 transition-colors flex items-center gap-2 shadow-sm group">
+                                <i data-lucide="check-check" class="w-4 h-4 group-hover:scale-110 transition-transform"></i> ผ่าน QC ทั้งหมด
                             </button>
                         </div>`;
                     }
                     return `${topBar}<div class="space-y-4">${order.items.map((item, idx) => {
                          const isComplete = (item.passed + item.failed) === item.qty;
                          return `<div class="bg-white rounded-3xl shadow-soft border ${isComplete ? 'border-emerald-500 ring-1 ring-emerald-100' : 'border-slate-200'} overflow-hidden">
-                            <div class="p-5 border-b border-slate-50 flex justify-between items-start"><div><span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 mb-1 inline-block">${app.ui.escapeHTML(item.sku || '-')}</span><div class="font-bold text-slate-800 text-lg">${app.ui.escapeHTML(item.name)}</div><div class="flex flex-wrap gap-2 mt-2">${item.picks.map(p => `<span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded border border-slate-200 font-mono">LOT: ${app.ui.escapeHTML(p.lot)}</span>`).join('')}</div></div><div class="text-right"><span class="text-xs font-bold bg-white border border-slate-200 text-slate-600 px-3 py-1 rounded-xl">จำนวน: ${item.qty}</span></div></div>
+                            <div class="p-5 border-b border-slate-50 flex justify-between items-start"><div><span class="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 mb-1 inline-block">${app.ui.escapeHTML(item.sku || '-')}</span><div class="font-bold text-slate-800 text-lg">${app.ui.escapeHTML(item.name)}</div><div class="flex flex-wrap gap-2 mt-2">${item.picks.map(p => `<span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded border border-slate-200 font-mono">LOT: ${app.ui.escapeHTML(p.lot)}</span>`).join('')}</div></div><div class="text-right"><span class="text-xs font-bold bg-white border border-slate-200 text-slate-600 px-3 py-1 rounded-xl shadow-sm">จำนวน: ${item.qty}</span></div></div>
                             <div class="p-5 space-y-4">
                                 <div class="flex gap-4">
                                     <div class="flex-1 bg-emerald-50 p-3 rounded-2xl border border-emerald-100"><label class="text-xs font-bold text-emerald-700 mb-2 block">ผ่าน (Pass)</label><input id="qc-pass-${idx}" type="number" value="${item.passed}" ${canEdit?'':'disabled'} onchange="app.logic.setQC('${app.ui.escapeStr(order.id)}', ${idx}, 'passed', this.value)" onkeydown="if(event.key === 'Enter') app.logic.handleQCEnter(this, ${idx}, 'pass')" class="w-full text-center text-3xl font-bold text-emerald-600 bg-white border border-emerald-200 rounded-xl py-2 outline-none"></div>
@@ -1269,7 +1322,7 @@
                                 <i data-lucide="package" class="w-8 h-8 opacity-50"></i>
                             </div>
                             <div class="space-y-3">${order.items.map((item, idx) => {
-                            const isShortfall = (item.packed_qty || 0) < item.qty;
+                            const isShortfall = order.status === 'completed' && (item.packed_qty || 0) < item.qty;
                             return `<div class="bg-white p-4 rounded-3xl border border-slate-100 flex items-center justify-between shadow-soft">
                                 <div class="flex items-center gap-3">
                                     <div class="w-8 h-8 ${isShortfall ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'} rounded-full flex items-center justify-center"><i data-lucide="${isShortfall ? 'alert-circle' : 'check'}" class="w-4 h-4"></i></div>
@@ -1279,7 +1332,7 @@
                                     </div>
                                 </div>
                             </div>`;
-                        }).join('')}</div></div>`;
+                        }).join('')}${order.status === 'completed' ? `<div class="bg-emerald-50 text-emerald-600 p-6 rounded-3xl text-center font-bold border border-emerald-100 flex flex-col items-center gap-2"><i data-lucide="check-circle" class="w-8 h-8"></i>ออเดอร์เสร็จสมบูรณ์</div>` : ''}</div></div>`;
                     }
 
                     // Packed Boxes List
@@ -1366,6 +1419,79 @@
             },
 
             logic: {
+                toggleAllOrders(checkbox) {
+                    const cbs = document.querySelectorAll('.order-cb');
+                    cbs.forEach(cb => cb.checked = checkbox.checked);
+                    this.updateBulkDeleteBtn();
+                },
+                
+                updateBulkDeleteBtn() {
+                    const checked = document.querySelectorAll('.order-cb:checked').length;
+                    const btn = document.getElementById('btn-bulk-delete');
+                    const countSpan = document.getElementById('selected-count');
+                    if(btn && countSpan) {
+                        countSpan.innerText = checked;
+                        btn.disabled = checked === 0;
+                    }
+                },
+                
+                bulkDeleteOrders() {
+                    const checkedIds = Array.from(document.querySelectorAll('.order-cb:checked')).map(cb => cb.value);
+                    if (checkedIds.length === 0) return;
+
+                    app.ui.modalHTML('ยืนยันการลบหลายรายการ', `
+                        <div class="text-center py-2">
+                            <div class="mx-auto w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-3">
+                                <i data-lucide="trash-2" class="w-6 h-6"></i>
+                            </div>
+                            <p class="text-slate-600 mb-1">คุณต้องการลบออเดอร์ที่เลือกจำนวน</p>
+                            <p class="font-bold text-red-500 text-2xl mb-2">${checkedIds.length} <span class="text-base text-slate-600 font-normal">รายการ</span></p>
+                            <p class="text-xs text-slate-400">การดำเนินการนี้ไม่สามารถย้อนกลับได้</p>
+                        </div>
+                    `, () => {
+                        app.data.orders = app.data.orders.filter(o => !checkedIds.includes(o.id));
+                        app.saveData();
+                        app.router(app.currentPage, app.currentParam);
+                        app.ui.toast(`ลบออเดอร์ ${checkedIds.length} รายการสำเร็จ`);
+                    }, 'ลบข้อมูล');
+
+                    setTimeout(() => {
+                        const btn = document.getElementById('modal-confirm');
+                        if(btn) btn.className = "px-6 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-red-200 transition-colors";
+                        lucide.createIcons();
+                    }, 50);
+                },
+
+                autoFillStock(orderId) {
+                    const order = app.data.orders.find(o => o.id === orderId);
+                    if (!order) return;
+
+                    app.ui.modalHTML('ยืนยันเบิกเต็มจำนวน', `
+                        <div class="text-center py-2">
+                            <div class="mx-auto w-12 h-12 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center mb-3">
+                                <i data-lucide="layers" class="w-6 h-6"></i>
+                            </div>
+                            <p class="text-slate-600 mb-2">ระบบจะทำการ <b>เติมยอดเบิกให้ครบตามจำนวนสั่ง</b> ทุกรายการในบิลนี้โดยอัตโนมัติ</p>
+                            <p class="text-xs text-slate-400">เหมาะสำหรับกรณีที่สินค้ามีพร้อมจ่ายครบทุกรายการ</p>
+                        </div>
+                    `, () => {
+                        order.items.forEach(item => {
+                            item.picks = [{ lot: '', qty: item.qty }];
+                            item.picked = item.qty;
+                        });
+
+                        app.saveData();
+                        this.refreshDetail(orderId);
+                        app.ui.toast('เบิกครบเต็มจำนวนเรียบร้อยแล้ว', 'success');
+                    }, 'ดำเนินการ');
+                    
+                    setTimeout(() => {
+                        const btn = document.getElementById('modal-confirm');
+                        if(btn) btn.className = "px-6 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-200 transition-colors";
+                        lucide.createIcons();
+                    }, 50);
+                },
+
                 bulkPrintLabels(orderId) {
                     const order = app.data.orders.find(o => o.id === orderId);
                     if (!order) return;
@@ -1850,11 +1976,18 @@
                             </div>
                             <p class="text-slate-600 mb-2">คุณต้องการลบออเดอร์นี้ใช่หรือไม่?</p>
                             <p class="font-bold text-slate-800 text-lg">${app.ui.escapeHTML(id)}</p>
+                            <p class="text-xs text-slate-400 mt-2">การดำเนินการนี้ไม่สามารถย้อนกลับได้</p>
                         </div>
                     `, () => {
                         app.data.orders = app.data.orders.filter(o => o.id !== id);
                         app.saveData();
-                        app.views.renderHistory(document.getElementById('main-view'));
+                        
+                        if (app.currentPage === 'detail') {
+                            app.router('dashboard');
+                        } else {
+                            app.router(app.currentPage, app.currentParam);
+                        }
+                        
                         app.ui.toast('ลบออเดอร์เรียบร้อยแล้ว');
                     }, 'ลบออเดอร์');
                     
@@ -2020,10 +2153,10 @@
                 addInputRow(skuVal = '', nameVal = '', qtyVal = '') { 
                     const list = document.getElementById('new-items-list'); 
                     const div = document.createElement('div'); 
-                    div.className = 'grid grid-cols-[180px_1fr_100px_100px_60px] gap-3 item-row animate-slide-up items-start relative'; 
+                    div.className = 'grid grid-cols-[180px_1fr_100px_100px_60px] md:gap-3 gap-2 item-row animate-slide-up items-start relative bg-white md:bg-transparent p-3 md:p-0 rounded-xl md:rounded-none border border-slate-100 md:border-none shadow-sm md:shadow-none mb-3 md:mb-0'; 
                     div.innerHTML = `
-                        <div class="w-full"><input type="text" placeholder="SKU" value="${app.ui.escapeHTML(skuVal)}" class="input-field w-full text-sm item-sku bg-slate-50 text-slate-600 font-mono" readonly tabindex="-1"></div>
-                        <div class="w-full relative group-input">
+                        <div class="w-full col-span-full md:col-span-1"><input type="text" placeholder="SKU" value="${app.ui.escapeHTML(skuVal)}" class="input-field w-full text-sm item-sku bg-slate-50 text-slate-600 font-mono" readonly tabindex="-1"></div>
+                        <div class="w-full relative group-input col-span-full md:col-span-1">
                             <div class="relative">
                                 <input type="text" placeholder="พิมพ์ชื่อสินค้า..." value="${app.ui.escapeHTML(nameVal)}" class="input-field w-full text-sm item-name font-bold focus:ring-2 focus:ring-blue-400 pr-10" 
                                     oninput="app.logic.searchProduct(this)" onfocus="app.logic.searchProduct(this)" onclick="this.select()" autocomplete="off">
@@ -2035,7 +2168,7 @@
                         </div>
                         <div class="w-full"><input type="number" placeholder="0" value="${qtyVal}" class="input-field w-full text-center text-sm item-qty font-bold text-blue-600"></div>
                         <div class="w-full"><input type="text" placeholder="หน่วย" value="ชิ้น" class="input-field w-full text-center text-sm item-unit text-slate-500"></div>
-                        <div class="w-full flex justify-end"><button onclick="this.closest('.item-row').remove()" class="p-2 text-rose-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"><i data-lucide="trash-2" class="w-5 h-5"></i></button></div>
+                        <div class="w-full flex justify-end items-center"><button onclick="this.closest('.item-row').remove()" class="p-2 text-rose-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors bg-rose-50/50 md:bg-transparent"><i data-lucide="trash-2" class="w-5 h-5"></i></button></div>
                     `; 
                     list.appendChild(div); 
                     lucide.createIcons(); 
