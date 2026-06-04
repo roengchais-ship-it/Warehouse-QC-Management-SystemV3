@@ -617,8 +617,8 @@
                                 </button>
                             </div>
 
-                            <!-- Filter Card -->
-                            <div class="bg-white p-5 rounded-3xl shadow-soft border border-slate-100">
+                            <!-- Filter Card (Added relative z-20 to fix dropdown overlap) -->
+                            <div class="bg-white p-5 rounded-3xl shadow-soft border border-slate-100 relative z-20">
                                 <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
                                     <div>
                                         <label class="text-xs font-bold text-slate-500 mb-1.5 block">จากวันที่</label>
@@ -635,7 +635,7 @@
                                             ${customers.map(c => `<option value="${app.ui.escapeHTML(c)}">${app.ui.escapeHTML(c)}</option>`).join('')}
                                         </select>
                                     </div>
-                                    <div class="relative" id="rep-product-container">
+                                    <div class="relative z-50" id="rep-product-container">
                                         <label class="text-xs font-bold text-slate-500 mb-1.5 block">สินค้า (เลือกหลายรายการ)</label>
                                         <div class="input-field w-full text-sm text-slate-700 bg-white cursor-pointer flex justify-between items-center" onclick="document.getElementById('rep-product-dropdown').classList.toggle('hidden')">
                                             <span id="rep-product-label" class="truncate">-- ทุกสินค้า --</span>
