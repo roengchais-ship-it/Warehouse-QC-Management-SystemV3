@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Warehouse QC Enterprise v3.6 (Bulk Delete & Auto Pick)</title>
+    <title>Warehouse QC Enterprise v3.7 (Report Patch)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.sheetjs.cฟom/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
         if (typeof pdfjsLib !== 'undefined') {
@@ -112,7 +112,7 @@
                     <i data-lucide="package-check" class="w-8 h-8 text-white"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-800">Warehouse QC</h1>
-                <p class="text-sm text-slate-400">Enterprise Edition v3.6</p>
+                <p class="text-sm text-slate-400">Enterprise Edition v3.7</p>
             </div>
             <div class="space-y-4">
                 <div><label class="text-xs font-bold text-slate-500 mb-1.5 block ml-1">ชื่อผู้ใช้</label><input type="text" id="login-username" class="input-field w-full" placeholder="username"></div>
@@ -150,7 +150,7 @@
                 <button onclick="app.auth.logout()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-50 transition-all">
                     <i data-lucide="log-out" class="w-5 h-5"></i> ออกจากระบบ
                 </button>
-                <p class="text-[10px] text-slate-400 text-center mt-3 font-mono">v3.6 (Enterprise)</p>
+                <p class="text-[10px] text-slate-400 text-center mt-3 font-mono">v3.7 (Enterprise)</p>
             </div>
         </aside>
 
@@ -253,7 +253,7 @@
                                                 if(window.app.currentPage === 'detail' && window.app.currentParam) {
                                                     window.app.logic.refreshDetail(window.app.currentParam);
                                                 } else if(window.app.currentPage === 'report') {
-                                                    window.app.views.updateReportTable(); // Refresh report if open
+                                                    window.app.views.updateReportTable();
                                                 } else {
                                                     window.app.router(window.app.currentPage, window.app.currentParam);
                                                 }
@@ -319,7 +319,7 @@
             currentPage: 'dashboard',
             currentParam: null,
             session: {}, 
-            reportData: [], // Store generated report data for export
+            reportData: [], 
             
             init() {
                 ['login-username', 'login-password'].forEach(id => {
@@ -341,7 +341,6 @@
                     this.showLogin(); 
                 }
 
-                // Global click handler for closing custom dropdowns
                 document.addEventListener('click', (e) => {
                     const repContainer = document.getElementById('rep-product-container');
                     const repDropdown = document.getElementById('rep-product-dropdown');
@@ -514,10 +513,8 @@
             },
 
             utils: {
-                // Parse old thai date strings "15 ส.ค. 66" or fallback to rawDate
                 parseDate(order) {
                     if(order.rawDate) return new Date(order.rawDate);
-                    // Fallback for older data format
                     const parts = order.date.split(' ');
                     if(parts.length >= 3) {
                         const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
@@ -525,12 +522,11 @@
                         const m = months.indexOf(parts[1]);
                         const y = parseInt(parts[2]);
                         if(!isNaN(d) && m !== -1 && !isNaN(y)) {
-                            // Assuming year is like 66, 67 (Buddhist era short)
                             const fullYear = (y > 50 ? 2500 + y : 2500 + y) - 543;
                             return new Date(fullYear, m, d);
                         }
                     }
-                    return new Date(order.date); // Last resort
+                    return new Date(order.date); 
                 }
             },
 
@@ -544,7 +540,6 @@
                         ship: app.data.orders.filter(o => o.status === 'ready_ship').length
                     };
 
-                    // Find shortfalls in recent closed/ready orders
                     const shortfallOrders = app.data.orders.filter(o => 
                         (o.status === 'ready_ship' || o.status === 'completed') && 
                         o.items.some(i => (i.packed_qty || 0) < i.qty)
@@ -595,16 +590,15 @@
                 },
 
                 renderReport(container) {
-                    // Extract unique customers for dropdown
                     const customers = [...new Set(app.data.orders.map(o => o.customer))].filter(Boolean).sort();
                     
-                    // Default dates (e.g., this month)
                     const today = new Date();
                     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
                     const currentDateStr = today.toISOString().split('T')[0];
 
                     app.session.reportSelectedProducts = [];
 
+                    // [FIX Issue 1 & 2] เพิ่มปุ่ม Print Report, ปุ่ม Reset Filter และจำกัดวันที่ (max attribute)
                     container.innerHTML = `
                         <div class="p-4 lg:p-8 space-y-6 animate-fade-in max-w-6xl mx-auto pb-32">
                             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -612,21 +606,25 @@
                                     <div class="p-3 bg-indigo-100 text-indigo-600 rounded-2xl"><i data-lucide="file-search" class="w-6 h-6"></i></div>
                                     <div><h2 class="text-2xl font-bold text-slate-800">รายงานการจัดส่ง (Report)</h2><p class="text-xs text-slate-500">ตรวจสอบยอดส่ง สรุปรายการสินค้าส่งขาด</p></div>
                                 </div>
-                                <button onclick="app.views.exportReportExcel()" class="btn-main btn-emerald !w-auto !h-11 px-5 text-sm shadow-sm whitespace-nowrap">
-                                    <i data-lucide="download" class="w-4 h-4"></i> Export Excel
-                                </button>
+                                <div class="flex flex-wrap gap-2">
+                                    <button onclick="app.views.printReport()" class="btn-main btn-grey !w-auto !h-11 px-4 text-sm shadow-sm whitespace-nowrap text-slate-600 hover:text-slate-800 hover:bg-slate-200">
+                                        <i data-lucide="printer" class="w-4 h-4"></i> พิมพ์
+                                    </button>
+                                    <button onclick="app.views.exportReportExcel()" class="btn-main btn-emerald !w-auto !h-11 px-4 text-sm shadow-sm whitespace-nowrap">
+                                        <i data-lucide="download" class="w-4 h-4"></i> Export Excel
+                                    </button>
+                                </div>
                             </div>
 
-                            <!-- Filter Card (Added relative z-20 to fix dropdown overlap) -->
                             <div class="bg-white p-5 rounded-3xl shadow-soft border border-slate-100 relative z-20">
                                 <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
                                     <div>
                                         <label class="text-xs font-bold text-slate-500 mb-1.5 block">จากวันที่</label>
-                                        <input type="date" id="rep-start" value="${firstDay}" class="input-field w-full text-sm">
+                                        <input type="date" id="rep-start" value="${firstDay}" max="${currentDateStr}" class="input-field w-full text-sm">
                                     </div>
                                     <div>
                                         <label class="text-xs font-bold text-slate-500 mb-1.5 block">ถึงวันที่</label>
-                                        <input type="date" id="rep-end" value="${currentDateStr}" class="input-field w-full text-sm">
+                                        <input type="date" id="rep-end" value="${currentDateStr}" max="${currentDateStr}" class="input-field w-full text-sm">
                                     </div>
                                     <div>
                                         <label class="text-xs font-bold text-slate-500 mb-1.5 block">สาขา / ลูกค้า</label>
@@ -641,12 +639,12 @@
                                             <span id="rep-product-label" class="truncate">-- ทุกสินค้า --</span>
                                             <i data-lucide="chevron-down" class="w-4 h-4 shrink-0 ml-2 text-slate-400"></i>
                                         </div>
-                                        <div id="rep-product-dropdown" class="absolute z-50 w-full md:w-80 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl hidden max-h-[300px] flex-col">
-                                            <div class="p-2 sticky top-0 bg-white border-b border-slate-100 rounded-t-xl shrink-0 z-10">
+                                        <div id="rep-product-dropdown" class="absolute z-50 w-full md:w-80 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl hidden flex-col pb-2">
+                                            <div class="p-2 sticky top-0 bg-white border-b border-slate-100 rounded-t-xl shrink-0 z-10 flex justify-between items-center gap-2">
                                                 <input type="text" placeholder="ค้นหาสินค้า..." class="w-full text-xs p-2.5 border border-slate-200 rounded-lg outline-none focus:border-blue-400 bg-slate-50" oninput="app.logic.filterReportProducts(this.value)">
+                                                <button onclick="document.getElementById('rep-product-dropdown').classList.add('hidden')" class="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-2 rounded-lg shrink-0 hover:bg-blue-100">ปิด</button>
                                             </div>
-                                            <div id="rep-product-list" class="p-1 overflow-y-auto flex-1">
-                                                <!-- Populated by JS -->
+                                            <div id="rep-product-list" class="p-1 overflow-y-auto flex-1 max-h-[300px]">
                                             </div>
                                         </div>
                                     </div>
@@ -657,20 +655,18 @@
                                             <option value="all">แสดงประวัติจัดส่งทั้งหมด</option>
                                         </select>
                                     </div>
-                                    <div>
-                                        <button onclick="app.views.updateReportTable()" class="btn-main btn-blue !h-[42px] shadow-sm"><i data-lucide="search" class="w-4 h-4"></i> ค้นหา</button>
+                                    <div class="flex gap-2">
+                                        <button onclick="app.views.resetReportFilter()" class="btn-main btn-grey !h-[42px] !w-12 shadow-sm shrink-0" title="ล้างค่าค้นหา"><i data-lucide="rotate-ccw" class="w-4 h-4"></i></button>
+                                        <button onclick="app.views.updateReportTable()" class="btn-main btn-blue !h-[42px] shadow-sm flex-1"><i data-lucide="search" class="w-4 h-4"></i> ค้นหา</button>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Summary Stats -->
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="rep-stats">
-                                <!-- Populated by JS -->
                             </div>
 
-                            <!-- Table -->
                             <div class="bg-white rounded-3xl shadow-soft border border-slate-100 overflow-hidden">
-                                <div class="overflow-x-auto">
+                                <div class="overflow-x-auto w-full">
                                     <table class="w-full text-left border-collapse min-w-[800px]">
                                         <thead>
                                             <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
@@ -685,7 +681,6 @@
                                             </tr>
                                         </thead>
                                         <tbody id="rep-table-body" class="divide-y divide-slate-100 text-sm">
-                                            <!-- Populated by JS -->
                                         </tbody>
                                     </table>
                                 </div>
@@ -696,6 +691,108 @@
                     this.updateReportTable();
                 },
 
+                // [FIX Issue 1] ฟังก์ชันสำหรับล้างค่า Filter (Reset) ให้กลับมาเริ่มต้น
+                resetReportFilter() {
+                    const today = new Date();
+                    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+                    const currentDateStr = today.toISOString().split('T')[0];
+
+                    document.getElementById('rep-start').value = firstDay;
+                    document.getElementById('rep-end').value = currentDateStr;
+                    document.getElementById('rep-branch').value = '';
+                    document.getElementById('rep-mode').value = 'shortfall';
+                    
+                    app.session.reportSelectedProducts = [];
+                    app.logic.updateReportProductLabel();
+                    this.renderReportProductList();
+                    this.updateReportTable();
+                },
+
+                // [FIX Issue 1] ฟังก์ชันสำหรับ Print รายงานตามตารางและ Filter
+                printReport() {
+                    if (!app.reportData || app.reportData.length === 0) {
+                        return app.ui.toast('ไม่มีข้อมูลสำหรับพิมพ์', 'warning');
+                    }
+
+                    const startVal = document.getElementById('rep-start').value;
+                    const endVal = document.getElementById('rep-end').value;
+                    const branch = document.getElementById('rep-branch').value || 'ทั้งหมด';
+                    const mode = document.getElementById('rep-mode').options[document.getElementById('rep-mode').selectedIndex].text;
+                    const statsHtml = document.getElementById('rep-stats').innerHTML;
+                    const tableHtml = document.querySelector('.overflow-x-auto').innerHTML;
+
+                    let printFrame = document.getElementById('print-report-frame');
+                    if (!printFrame) {
+                        printFrame = document.createElement('iframe');
+                        printFrame.id = 'print-report-frame';
+                        printFrame.style.position = 'fixed';
+                        printFrame.style.right = '0';
+                        printFrame.style.bottom = '0';
+                        printFrame.style.width = '0';
+                        printFrame.style.height = '0';
+                        printFrame.style.border = '0';
+                        document.body.appendChild(printFrame);
+                    }
+
+                    const doc = printFrame.contentWindow.document;
+                    doc.open();
+                    doc.write(`
+                        <html>
+                        <head>
+                            <title>Report - Warehouse QC</title>
+                            <script src="https://cdn.tailwindcss.com"><\/script>
+                            <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+                            <style>
+                                body { font-family: 'Sarabun', sans-serif; padding: 20px; color: black; background: white; }
+                                @media print { 
+                                    @page { size: A4 landscape; margin: 10mm; } 
+                                    body { margin: 0; -webkit-print-color-adjust: exact; }
+                                    .page-break { page-break-inside: avoid; }
+                                    a { text-decoration: none; color: black; font-weight: normal; pointer-events: none; }
+                                    /* Simplify stats for print */
+                                    #rep-stats { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+                                    #rep-stats > div { flex: 1; border: 1px solid #ccc; padding: 10px; border-radius: 8px; text-align: center; }
+                                    #rep-stats p:first-child { font-size: 10px; text-transform: uppercase; color: #666; margin-bottom: 4px; }
+                                    #rep-stats p:last-child { font-size: 18px; font-weight: bold; margin: 0; }
+                                    #rep-stats span { font-size: 12px; font-weight: normal; color: #666; }
+                                    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+                                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                                    th { background-color: #f3f4f6 !important; color: #374151; font-weight: bold; }
+                                    .text-center { text-align: center; }
+                                    .text-rose-500, .text-rose-600 { color: #e11d48 !important; }
+                                    .text-emerald-600 { color: #059669 !important; }
+                                    .bg-rose-50\\/50 { background-color: #fff1f2 !important; }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="mb-6 border-b-2 border-black pb-4 text-center">
+                                <h1 class="text-2xl font-black mb-2 uppercase tracking-wider">รายงานการจัดส่ง (Delivery Report)</h1>
+                                <p class="text-sm text-gray-600">
+                                    <strong>รูปแบบ:</strong> ${mode} | 
+                                    <strong>ลูกค้า/สาขา:</strong> ${branch} | 
+                                    <strong>ช่วงเวลา:</strong> ${startVal || '-'} ถึง ${endVal || '-'}
+                                </p>
+                                <p class="text-xs text-gray-500 mt-1">พิมพ์โดย: ${app.ui.escapeHTML(app.currentUser.name)} | วันที่พิมพ์: ${new Date().toLocaleString('th-TH')}</p>
+                            </div>
+                            
+                            <div id="rep-stats">
+                                ${statsHtml}
+                            </div>
+                            
+                            <div class="mt-4">
+                                ${tableHtml}
+                            </div>
+
+                            <script>
+                                setTimeout(() => { window.print(); }, 800); 
+                            <\/script>
+                        </body>
+                        </html>
+                    `);
+                    doc.close();
+                },
+
                 renderReportProductList(filterText = '') {
                     const listContainer = document.getElementById('rep-product-list');
                     if(!listContainer) return;
@@ -703,7 +800,7 @@
                     listContainer.innerHTML = products.map(p => {
                         const isChecked = app.session.reportSelectedProducts.includes(p.sku) ? 'checked' : '';
                         return `
-                            <label class="flex items-start gap-2 p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
+                            <label class="flex items-start gap-2 p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors border-b border-slate-50 last:border-0">
                                 <input type="checkbox" value="${app.ui.escapeHTML(p.sku)}" class="mt-1 rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" ${isChecked} onchange="app.logic.toggleReportProduct(this)">
                                 <span class="text-sm text-slate-700 leading-tight select-none">${app.ui.escapeHTML(p.name)} <br><span class="text-[10px] text-slate-400 font-mono">${app.ui.escapeHTML(p.sku)}</span></span>
                             </label>
@@ -718,10 +815,8 @@
                     const selectedProducts = app.session.reportSelectedProducts || [];
                     const mode = document.getElementById('rep-mode').value;
 
-                    // Filter only processed orders
                     let filteredOrders = app.data.orders.filter(o => o.status === 'completed' || o.status === 'ready_ship');
 
-                    // Filter Date
                     if (startVal) {
                         const sDate = new Date(startVal);
                         sDate.setHours(0,0,0,0);
@@ -733,7 +828,6 @@
                         filteredOrders = filteredOrders.filter(o => app.utils.parseDate(o) <= eDate);
                     }
 
-                    // Filter Branch
                     if (branch) {
                         filteredOrders = filteredOrders.filter(o => o.customer === branch);
                     }
@@ -750,7 +844,7 @@
                             const pack = i.packed_qty || 0;
                             const miss = req - pack;
 
-                            if (mode === 'shortfall' && miss <= 0) return; // Skip complete items if mode is shortfall
+                            if (mode === 'shortfall' && miss <= 0) return; 
 
                             reportItems.push({
                                 orderId: o.id,
@@ -773,9 +867,8 @@
                     });
 
                     stats.totalOrd = uniqueOrderIds.size;
-                    app.reportData = reportItems; // Save for export
+                    app.reportData = reportItems; 
 
-                    // Render Stats
                     document.getElementById('rep-stats').innerHTML = `
                         <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm"><p class="text-xs text-slate-500 font-bold mb-1">ออเดอร์ที่พบ</p><p class="text-2xl font-black text-slate-800">${stats.totalOrd} <span class="text-sm font-normal text-slate-400">บิล</span></p></div>
                         <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm"><p class="text-xs text-slate-500 font-bold mb-1">ยอดสั่งรวม</p><p class="text-2xl font-black text-blue-600">${stats.totalReq} <span class="text-sm font-normal text-slate-400">ชิ้น</span></p></div>
@@ -783,12 +876,10 @@
                         <div class="bg-white p-4 rounded-2xl border ${stats.totalMiss > 0 ? 'border-rose-200 bg-rose-50' : 'border-slate-100'} shadow-sm"><p class="text-xs ${stats.totalMiss > 0 ? 'text-rose-500' : 'text-slate-500'} font-bold mb-1">ยอดส่งขาด</p><p class="text-2xl font-black ${stats.totalMiss > 0 ? 'text-rose-600' : 'text-slate-800'}">${stats.totalMiss} <span class="text-sm font-normal ${stats.totalMiss > 0 ? 'text-rose-400' : 'text-slate-400'}">ชิ้น</span></p></div>
                     `;
 
-                    // Render Table
                     const tbody = document.getElementById('rep-table-body');
                     if (reportItems.length === 0) {
                         tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400">ไม่พบข้อมูลตามเงื่อนไขที่ค้นหา</td></tr>`;
                     } else {
-                        // Sort by date desc
                         reportItems.sort((a,b) => new Date(b.rawDate) - new Date(a.rawDate));
                         
                         tbody.innerHTML = reportItems.map(item => `
@@ -812,7 +903,6 @@
                         return app.ui.toast('ไม่มีข้อมูลสำหรับ Export', 'warning');
                     }
 
-                    // Prepare data for Excel
                     const excelData = app.reportData.map(item => ({
                         'วันที่': item.date.split(',')[0],
                         'เอกสาร/ออเดอร์': item.docNo,
@@ -826,16 +916,15 @@
 
                     const ws = XLSX.utils.json_to_sheet(excelData);
                     
-                    // Auto width
                     const wscols = [
-                        {wch: 12}, // Date
-                        {wch: 15}, // Doc
-                        {wch: 25}, // Branch
-                        {wch: 15}, // SKU
-                        {wch: 40}, // Name
-                        {wch: 10}, // Req
-                        {wch: 10}, // Pack
-                        {wch: 10}  // Miss
+                        {wch: 12}, 
+                        {wch: 15}, 
+                        {wch: 25}, 
+                        {wch: 15}, 
+                        {wch: 40}, 
+                        {wch: 10}, 
+                        {wch: 10}, 
+                        {wch: 10}  
                     ];
                     ws['!cols'] = wscols;
 
@@ -1731,7 +1820,7 @@
                         const list = document.getElementById('edit-order-list');
                         const rows = list.querySelectorAll('.edit-order-item');
                         const newItems = [];
-                        let hasInvalidQty = false; // [FIX Issue 3]
+                        let hasInvalidQty = false; 
                         
                         rows.forEach(row => {
                             const skuInput = row.querySelector('.eo-sku');
@@ -1743,7 +1832,7 @@
                             const oldItem = oldIdx !== undefined && oldIdx !== "" ? order.items[oldIdx] : null;
                             
                             if (name && !isNaN(qty)) {
-                                if (qty <= 0) { hasInvalidQty = true; return; } // [FIX Issue 3]
+                                if (qty <= 0) { hasInvalidQty = true; return; } 
                                 if (oldItem) {
                                     const oldSku = oldItem.sku;
                                     
@@ -1775,7 +1864,7 @@
                         });
 
                         if(hasInvalidQty) {
-                            return app.ui.toast('จำนวนสินค้าต้องมากกว่า 0', 'error'); // [FIX Issue 3]
+                            return app.ui.toast('จำนวนสินค้าต้องมากกว่า 0', 'error'); 
                         }
 
                         if(newItems.length === 0) {
@@ -1990,7 +2079,6 @@
                     const product = app.data.products.find(p => p.sku === sku);
                     if(!product) return;
 
-                    // [FIX Issue 4] ป้องกันการลบ Master Data ที่ถูกใช้งานไปแล้ว
                     const isUsed = app.data.orders.some(o => o.items.some(i => i.sku === sku));
                     if (isUsed) {
                         return app.ui.toast('ไม่สามารถลบได้ เนื่องจากสินค้านี้ถูกใช้ในออเดอร์แล้ว', 'error');
@@ -2155,7 +2243,6 @@
                                         const masterProd = app.data.products.find(p => p.sku.toLowerCase() === sku.toLowerCase());
                                         if (masterProd) name = masterProd.name;
 
-                                        // [FIX Issue 3] Validation for PDF import
                                         if (qty > 0) {
                                             this.addInputRow(sku, name, qty);
                                             count++;
@@ -2197,7 +2284,6 @@
 
                                     if(name && qty) { 
                                         const parsedQty = parseInt(qty);
-                                        // [FIX Issue 3] Validation for Excel import
                                         if(!isNaN(parsedQty) && parsedQty > 0) {
                                             this.addInputRow(sku, name, parsedQty); 
                                             count++; 
@@ -2216,7 +2302,6 @@
                     const list = document.getElementById('new-items-list'); 
                     const div = document.createElement('div'); 
                     div.className = 'grid grid-cols-[180px_1fr_100px_100px_60px] md:gap-3 gap-2 item-row animate-slide-up items-start relative bg-white md:bg-transparent p-3 md:p-0 rounded-xl md:rounded-none border border-slate-100 md:border-none shadow-sm md:shadow-none mb-3 md:mb-0'; 
-                    // [FIX Issue 3] เพิ่ม attribute min="1" เข้าไปที่ tag <input type="number" ... /> เพื่อไม่ให้ผู้ใช้งานกรอกเลข 0 หรือติดลบผ่าน UI
                     div.innerHTML = `
                         <div class="w-full col-span-full md:col-span-1"><input type="text" placeholder="SKU" value="${app.ui.escapeHTML(skuVal)}" class="input-field w-full text-sm item-sku bg-slate-50 text-slate-600 font-mono" readonly tabindex="-1"></div>
                         <div class="w-full relative group-input col-span-full md:col-span-1">
@@ -2348,7 +2433,7 @@
                     const customer = document.getElementById('new-customer').value;
                     const dateInput = document.getElementById('new-date').value;
                     const items = []; 
-                    let hasInvalidQty = false; // [FIX Issue 3] Flag เช็คจำนวนที่ผิดพลาด
+                    let hasInvalidQty = false; 
 
                     document.querySelectorAll('.item-row').forEach(row => { 
                         const sku = row.querySelector('.item-sku').value;
@@ -2356,7 +2441,6 @@
                         const qty = parseInt(row.querySelector('.item-qty').value); 
                         const unit = row.querySelector('.item-unit').value; 
                         
-                        // [FIX Issue 3] ป้องกันการ Push จำนวนติดลบเข้าสู่ระบบ
                         if(name && !isNaN(qty)) {
                             if(qty <= 0) hasInvalidQty = true;
                             else items.push({ sku, name, qty: qty, unit: unit || 'ชิ้น', picked: 0, lot: '', passed: 0, failed: 0, picks: [], qc_reason: '' }); 
@@ -2365,7 +2449,6 @@
                     
                     if(!customer || items.length === 0) return app.ui.toast('กรอกข้อมูลไม่ครบ', 'error');
                     
-                    // [FIX Issue 3] แจ้งเตือนและหยุดการทำงานหากพบจำนวนติดลบหรือเท่ากับ 0
                     if(hasInvalidQty) return app.ui.toast('จำนวนสินค้าต้องมากกว่า 0', 'error');
                     
                     const now = new Date();
@@ -2532,7 +2615,6 @@
                     const order = app.data.orders.find(o => o.id === orderId);
                     if (!order) return;
 
-                    // Collect data
                     const summary = {};
                     const allBoxes = [...(order.boxes || [])];
                     if (order.active_box && order.active_box.total_qty > 0) {
@@ -2999,7 +3081,6 @@
                 modalHTML(title, html, onConfirm, btnText='ยืนยัน') {
                     const overlay = document.getElementById('modal-overlay');
                     const content = document.getElementById('modal-content');
-                    // [FIX Issue 5] บังคับโครงสร้าง flex ยืดหยุ่นและป้องกันล้นจอด้วย overflow-y-auto
                     content.innerHTML = `
                         <div class="px-6 pt-6 pb-4 shrink-0"><h3 class="text-xl font-bold text-slate-800">${title}</h3></div>
                         <div class="px-6 pb-4 overflow-y-auto custom-scrollbar flex-1" style="max-height: calc(100vh - 200px);">${html}</div>
