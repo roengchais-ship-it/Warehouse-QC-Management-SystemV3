@@ -7,7 +7,7 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.sheetjs.cฟom/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
         if (typeof pdfjsLib !== 'undefined') {
@@ -589,6 +589,23 @@
                         </div>`;
                 },
 
+                // [ADD] ฟังก์ชันสลับโหมดการดูรายงาน
+                setReportViewMode(viewMode) {
+                    app.session.reportViewMode = viewMode;
+                    const btnBranch = document.getElementById('btn-view-branch');
+                    const btnSummary = document.getElementById('btn-view-summary');
+                    if (btnBranch && btnSummary) {
+                        if (viewMode === 'branch') {
+                            btnBranch.className = "px-5 py-2 text-sm font-bold rounded-lg bg-white shadow-sm text-blue-600 transition-all";
+                            btnSummary.className = "px-5 py-2 text-sm font-bold rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 transition-all";
+                        } else {
+                            btnSummary.className = "px-5 py-2 text-sm font-bold rounded-lg bg-white shadow-sm text-blue-600 transition-all";
+                            btnBranch.className = "px-5 py-2 text-sm font-bold rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 transition-all";
+                        }
+                    }
+                    this.updateReportTable();
+                },
+
                 renderReport(container) {
                     const customers = [...new Set(app.data.orders.map(o => o.customer))].filter(Boolean).sort();
                     
@@ -597,6 +614,7 @@
                     const currentDateStr = today.toISOString().split('T')[0];
 
                     app.session.reportSelectedProducts = [];
+                    app.session.reportViewMode = 'branch'; // [ADD] Default mode
 
                     // [FIX Issue 1 & 2] เพิ่มปุ่ม Print Report, ปุ่ม Reset Filter และจำกัดวันที่ (max attribute)
                     container.innerHTML = `
@@ -649,7 +667,7 @@
                                         </div>
                                     </div>
                                     <div>
-                                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">รูปแบบการแสดงผล</label>
+                                        <label class="text-xs font-bold text-slate-500 mb-1.5 block">เงื่อนไขการส่งขาด</label>
                                         <select id="rep-mode" class="input-field w-full text-sm text-slate-700 bg-white">
                                             <option value="shortfall">แสดงเฉพาะ "สินค้าส่งขาด"</option>
                                             <option value="all">แสดงประวัติจัดส่งทั้งหมด</option>
@@ -660,6 +678,12 @@
                                         <button onclick="app.views.updateReportTable()" class="btn-main btn-blue !h-[42px] shadow-sm flex-1"><i data-lucide="search" class="w-4 h-4"></i> ค้นหา</button>
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- [ADD] รูปแบบการดูรายงาน -->
+                            <div class="flex gap-2 bg-slate-200/50 p-1.5 rounded-xl w-fit">
+                                <button onclick="app.views.setReportViewMode('branch')" id="btn-view-branch" class="px-5 py-2 text-sm font-bold rounded-lg bg-white shadow-sm text-blue-600 transition-all">ดูรายงานแบบแยกสาขา</button>
+                                <button onclick="app.views.setReportViewMode('summary')" id="btn-view-summary" class="px-5 py-2 text-sm font-bold rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 transition-all">ดูรายงานแบบรวมรายการ</button>
                             </div>
 
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="rep-stats">
@@ -703,6 +727,16 @@
                     document.getElementById('rep-mode').value = 'shortfall';
                     
                     app.session.reportSelectedProducts = [];
+                    app.session.reportViewMode = 'branch'; // [ADD]
+                    
+                    // [ADD] Reset button styles
+                    const btnBranch = document.getElementById('btn-view-branch');
+                    const btnSummary = document.getElementById('btn-view-summary');
+                    if (btnBranch && btnSummary) {
+                        btnBranch.className = "px-5 py-2 text-sm font-bold rounded-lg bg-white shadow-sm text-blue-600 transition-all";
+                        btnSummary.className = "px-5 py-2 text-sm font-bold rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 transition-all";
+                    }
+
                     app.logic.updateReportProductLabel();
                     this.renderReportProductList();
                     this.updateReportTable();
@@ -718,6 +752,7 @@
                     const endVal = document.getElementById('rep-end').value;
                     const branch = document.getElementById('rep-branch').value || 'ทั้งหมด';
                     const mode = document.getElementById('rep-mode').options[document.getElementById('rep-mode').selectedIndex].text;
+                    const viewModeText = app.session.reportViewMode === 'summary' ? 'รวมรายการ' : 'แยกสาขา'; // [ADD]
                     const statsHtml = document.getElementById('rep-stats').innerHTML;
                     const tableHtml = document.querySelector('.overflow-x-auto').innerHTML;
 
@@ -769,7 +804,8 @@
                             <div class="mb-6 border-b-2 border-black pb-4 text-center">
                                 <h1 class="text-2xl font-black mb-2 uppercase tracking-wider">รายงานการจัดส่ง (Delivery Report)</h1>
                                 <p class="text-sm text-gray-600">
-                                    <strong>รูปแบบ:</strong> ${mode} | 
+                                    <strong>เงื่อนไข:</strong> ${mode} | 
+                                    <strong>รูปแบบ:</strong> ${viewModeText} | 
                                     <strong>ลูกค้า/สาขา:</strong> ${branch} | 
                                     <strong>ช่วงเวลา:</strong> ${startVal || '-'} ถึง ${endVal || '-'}
                                 </p>
@@ -866,6 +902,33 @@
                         });
                     });
 
+                    // [ADD] Aggregate data if viewMode is 'summary'
+                    const viewMode = app.session.reportViewMode || 'branch';
+                    if (viewMode === 'summary') {
+                        const summaryMap = {};
+                        reportItems.forEach(item => {
+                            const key = item.sku || item.name;
+                            if (!summaryMap[key]) {
+                                summaryMap[key] = {
+                                    orderId: '-',
+                                    docNo: '-',
+                                    date: '-',
+                                    rawDate: item.rawDate,
+                                    branch: '-',
+                                    sku: item.sku,
+                                    name: item.name,
+                                    req: 0,
+                                    pack: 0,
+                                    miss: 0
+                                };
+                            }
+                            summaryMap[key].req += item.req;
+                            summaryMap[key].pack += item.pack;
+                            summaryMap[key].miss += item.miss;
+                        });
+                        reportItems = Object.values(summaryMap);
+                    }
+
                     stats.totalOrd = uniqueOrderIds.size;
                     app.reportData = reportItems; 
 
@@ -880,13 +943,17 @@
                     if (reportItems.length === 0) {
                         tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400">ไม่พบข้อมูลตามเงื่อนไขที่ค้นหา</td></tr>`;
                     } else {
-                        reportItems.sort((a,b) => new Date(b.rawDate) - new Date(a.rawDate));
+                        // ไม่ต้อง sort วันที่ถ้ารวมรายการแล้วจะไม่มีวันที่
+                        if (viewMode !== 'summary') {
+                             reportItems.sort((a,b) => new Date(b.rawDate) - new Date(a.rawDate));
+                        }
                         
+                        // [ADD] Modify tbody to handle summary view
                         tbody.innerHTML = reportItems.map(item => `
                             <tr class="hover:bg-slate-50 transition-colors group">
-                                <td class="p-4 text-slate-500">${app.ui.escapeHTML(item.date.split(',')[0])}</td>
-                                <td class="p-4"><a href="javascript:void(0)" onclick="app.router('detail', '${app.ui.escapeStr(item.orderId)}')" class="font-bold text-blue-600 hover:underline">${app.ui.escapeHTML(item.docNo)}</a></td>
-                                <td class="p-4 text-slate-700">${app.ui.escapeHTML(item.branch)}</td>
+                                <td class="p-4 text-slate-500">${viewMode === 'summary' ? '-' : app.ui.escapeHTML(item.date ? item.date.split(',')[0] : '-')}</td>
+                                <td class="p-4">${viewMode === 'summary' ? '-' : `<a href="javascript:void(0)" onclick="app.router('detail', '${app.ui.escapeStr(item.orderId)}')" class="font-bold text-blue-600 hover:underline">${app.ui.escapeHTML(item.docNo)}</a>`}</td>
+                                <td class="p-4 text-slate-700">${viewMode === 'summary' ? '-' : app.ui.escapeHTML(item.branch)}</td>
                                 <td class="p-4 font-mono text-xs text-slate-400">${app.ui.escapeHTML(item.sku || '-')}</td>
                                 <td class="p-4 font-bold text-slate-700">${app.ui.escapeHTML(item.name)}</td>
                                 <td class="p-4 text-center">${item.req}</td>
@@ -903,10 +970,11 @@
                         return app.ui.toast('ไม่มีข้อมูลสำหรับ Export', 'warning');
                     }
 
+                    // [ADD] Modify Export mapping to handle summary mode
                     const excelData = app.reportData.map(item => ({
-                        'วันที่': item.date.split(',')[0],
-                        'เอกสาร/ออเดอร์': item.docNo,
-                        'สาขา/ลูกค้า': item.branch,
+                        'วันที่': item.date && item.date !== '-' ? item.date.split(',')[0] : '-',
+                        'เอกสาร/ออเดอร์': item.docNo || '-',
+                        'สาขา/ลูกค้า': item.branch || '-',
                         'รหัสสินค้า (SKU)': item.sku,
                         'ชื่อสินค้า': item.name,
                         'ยอดสั่ง (ชิ้น)': item.req,
@@ -931,7 +999,8 @@
                     const wb = XLSX.utils.book_new();
                     XLSX.utils.book_append_sheet(wb, ws, "Report");
                     
-                    const fileName = `Warehouse_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+                    const viewModeSuffix = app.session.reportViewMode === 'summary' ? '_Summary' : '_Detail';
+                    const fileName = `Warehouse_Report_${new Date().toISOString().split('T')[0]}${viewModeSuffix}.xlsx`;
                     XLSX.writeFile(wb, fileName);
                     app.ui.toast('Export ไฟล์ Excel สำเร็จ', 'success');
                 },
