@@ -1692,7 +1692,7 @@
                                 <div class="flex gap-2">
                                     <div class="flex-1">
                                         <label class="text-[10px] font-bold text-slate-500">จำนวนสั่ง</label>
-                                        <input type="number" class="input-field w-full text-sm font-bold py-1.5 px-2 eo-qty" value="${item.qty}" min="${item.packed_qty || 0}">
+                                        <input type="number" class="input-field w-full text-sm font-bold py-1.5 px-2 eo-qty" value="${item.qty}" min="${Math.max(1, item.packed_qty || 0)}">
                                     </div>
                                     <div class="w-16 flex items-end">
                                         <button onclick="this.closest('.edit-order-item').remove()" class="w-full h-[34px] bg-red-50 text-red-500 rounded-lg flex items-center justify-center hover:bg-red-100 transition-colors" title="ลบรายการนี้" ${item.packed_qty > 0 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''}>
@@ -1731,17 +1731,19 @@
                         const list = document.getElementById('edit-order-list');
                         const rows = list.querySelectorAll('.edit-order-item');
                         const newItems = [];
+                        let hasInvalidQty = false; // [FIX Issue 3]
                         
                         rows.forEach(row => {
                             const skuInput = row.querySelector('.eo-sku');
                             const sku = skuInput ? skuInput.value.trim() : '';
                             const name = row.querySelector('.eo-name').value.trim();
-                            const qty = parseInt(row.querySelector('.eo-qty').value) || 0;
+                            const qty = parseInt(row.querySelector('.eo-qty').value);
                             
                             const oldIdx = row.dataset.idx;
                             const oldItem = oldIdx !== undefined && oldIdx !== "" ? order.items[oldIdx] : null;
                             
-                            if (name && qty > 0) {
+                            if (name && !isNaN(qty)) {
+                                if (qty <= 0) { hasInvalidQty = true; return; } // [FIX Issue 3]
                                 if (oldItem) {
                                     const oldSku = oldItem.sku;
                                     
@@ -1772,9 +1774,12 @@
                             }
                         });
 
+                        if(hasInvalidQty) {
+                            return app.ui.toast('จำนวนสินค้าต้องมากกว่า 0', 'error'); // [FIX Issue 3]
+                        }
+
                         if(newItems.length === 0) {
-                            app.ui.toast('ออเดอร์ต้องมีอย่างน้อย 1 รายการ', 'error');
-                            return; 
+                            return app.ui.toast('ออเดอร์ต้องมีอย่างน้อย 1 รายการ', 'error');
                         }
 
                         order.customer = newCustomer;
@@ -1985,6 +1990,12 @@
                     const product = app.data.products.find(p => p.sku === sku);
                     if(!product) return;
 
+                    // [FIX Issue 4] ป้องกันการลบ Master Data ที่ถูกใช้งานไปแล้ว
+                    const isUsed = app.data.orders.some(o => o.items.some(i => i.sku === sku));
+                    if (isUsed) {
+                        return app.ui.toast('ไม่สามารถลบได้ เนื่องจากสินค้านี้ถูกใช้ในออเดอร์แล้ว', 'error');
+                    }
+
                     app.ui.modalHTML('ยืนยันการลบ', `
                         <div class="text-center py-2">
                             <div class="mx-auto w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-3">
@@ -2144,8 +2155,11 @@
                                         const masterProd = app.data.products.find(p => p.sku.toLowerCase() === sku.toLowerCase());
                                         if (masterProd) name = masterProd.name;
 
-                                        this.addInputRow(sku, name, qty);
-                                        count++;
+                                        // [FIX Issue 3] Validation for PDF import
+                                        if (qty > 0) {
+                                            this.addInputRow(sku, name, qty);
+                                            count++;
+                                        }
                                     }
                                 }
                             });
@@ -2181,7 +2195,14 @@
                                         if (masterProd) name = masterProd.name;
                                     }
 
-                                    if(name && qty) { this.addInputRow(sku, name, qty); count++; }
+                                    if(name && qty) { 
+                                        const parsedQty = parseInt(qty);
+                                        // [FIX Issue 3] Validation for Excel import
+                                        if(!isNaN(parsedQty) && parsedQty > 0) {
+                                            this.addInputRow(sku, name, parsedQty); 
+                                            count++; 
+                                        }
+                                    }
                                 }
                             });
                             if(count === 0) app.ui.toast('ไม่พบข้อมูล (ตรวจสอบชื่อคอลัมน์)', 'error');
@@ -2195,6 +2216,7 @@
                     const list = document.getElementById('new-items-list'); 
                     const div = document.createElement('div'); 
                     div.className = 'grid grid-cols-[180px_1fr_100px_100px_60px] md:gap-3 gap-2 item-row animate-slide-up items-start relative bg-white md:bg-transparent p-3 md:p-0 rounded-xl md:rounded-none border border-slate-100 md:border-none shadow-sm md:shadow-none mb-3 md:mb-0'; 
+                    // [FIX Issue 3] เพิ่ม attribute min="1" เข้าไปที่ tag <input type="number" ... /> เพื่อไม่ให้ผู้ใช้งานกรอกเลข 0 หรือติดลบผ่าน UI
                     div.innerHTML = `
                         <div class="w-full col-span-full md:col-span-1"><input type="text" placeholder="SKU" value="${app.ui.escapeHTML(skuVal)}" class="input-field w-full text-sm item-sku bg-slate-50 text-slate-600 font-mono" readonly tabindex="-1"></div>
                         <div class="w-full relative group-input col-span-full md:col-span-1">
@@ -2207,7 +2229,7 @@
                             </div>
                             <div class="suggestions-box absolute top-full left-0 w-full bg-white shadow-xl rounded-xl border border-slate-100 mt-1 max-h-60 overflow-y-auto hidden z-50"></div>
                         </div>
-                        <div class="w-full"><input type="number" placeholder="0" value="${qtyVal}" class="input-field w-full text-center text-sm item-qty font-bold text-blue-600"></div>
+                        <div class="w-full"><input type="number" placeholder="0" value="${qtyVal}" min="1" class="input-field w-full text-center text-sm item-qty font-bold text-blue-600"></div>
                         <div class="w-full"><input type="text" placeholder="หน่วย" value="ชิ้น" class="input-field w-full text-center text-sm item-unit text-slate-500"></div>
                         <div class="w-full flex justify-end items-center"><button onclick="this.closest('.item-row').remove()" class="p-2 text-rose-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors bg-rose-50/50 md:bg-transparent"><i data-lucide="trash-2" class="w-5 h-5"></i></button></div>
                     `; 
@@ -2326,14 +2348,25 @@
                     const customer = document.getElementById('new-customer').value;
                     const dateInput = document.getElementById('new-date').value;
                     const items = []; 
+                    let hasInvalidQty = false; // [FIX Issue 3] Flag เช็คจำนวนที่ผิดพลาด
+
                     document.querySelectorAll('.item-row').forEach(row => { 
                         const sku = row.querySelector('.item-sku').value;
                         const name = row.querySelector('.item-name').value; 
-                        const qty = row.querySelector('.item-qty').value; 
+                        const qty = parseInt(row.querySelector('.item-qty').value); 
                         const unit = row.querySelector('.item-unit').value; 
-                        if(name && qty) items.push({ sku, name, qty: parseInt(qty), unit: unit || 'ชิ้น', picked: 0, lot: '', passed: 0, failed: 0, picks: [], qc_reason: '' }); 
+                        
+                        // [FIX Issue 3] ป้องกันการ Push จำนวนติดลบเข้าสู่ระบบ
+                        if(name && !isNaN(qty)) {
+                            if(qty <= 0) hasInvalidQty = true;
+                            else items.push({ sku, name, qty: qty, unit: unit || 'ชิ้น', picked: 0, lot: '', passed: 0, failed: 0, picks: [], qc_reason: '' }); 
+                        }
                     }); 
+                    
                     if(!customer || items.length === 0) return app.ui.toast('กรอกข้อมูลไม่ครบ', 'error');
+                    
+                    // [FIX Issue 3] แจ้งเตือนและหยุดการทำงานหากพบจำนวนติดลบหรือเท่ากับ 0
+                    if(hasInvalidQty) return app.ui.toast('จำนวนสินค้าต้องมากกว่า 0', 'error');
                     
                     const now = new Date();
                     let dateStr = dateInput ? new Date(dateInput).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit'}) : now.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit'});
@@ -2966,7 +2999,14 @@
                 modalHTML(title, html, onConfirm, btnText='ยืนยัน') {
                     const overlay = document.getElementById('modal-overlay');
                     const content = document.getElementById('modal-content');
-                    content.innerHTML = `<div class="px-6 pt-6 pb-4"><h3 class="text-xl font-bold text-slate-800">${title}</h3></div><div class="px-6 pb-4">${html}</div><div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50"><button id="modal-cancel" class="px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-200 rounded-xl">ยกเลิก</button><button id="modal-confirm" class="px-6 py-2 btn-blue text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-200">${btnText}</button></div>`;
+                    // [FIX Issue 5] บังคับโครงสร้าง flex ยืดหยุ่นและป้องกันล้นจอด้วย overflow-y-auto
+                    content.innerHTML = `
+                        <div class="px-6 pt-6 pb-4 shrink-0"><h3 class="text-xl font-bold text-slate-800">${title}</h3></div>
+                        <div class="px-6 pb-4 overflow-y-auto custom-scrollbar flex-1" style="max-height: calc(100vh - 200px);">${html}</div>
+                        <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 shrink-0">
+                            <button id="modal-cancel" class="px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-200 rounded-xl">ยกเลิก</button>
+                            <button id="modal-confirm" class="px-6 py-2 btn-blue text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-200">${btnText}</button>
+                        </div>`;
                     overlay.classList.remove('hidden'); setTimeout(() => overlay.classList.remove('opacity-0'), 10);
                     const close = () => { overlay.classList.add('opacity-0'); setTimeout(() => overlay.classList.add('hidden'), 200); };
                     document.getElementById('modal-cancel').onclick = close;
