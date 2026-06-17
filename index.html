@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Warehouse QC Enterprise v3.8 (Report & Hide QC Patch)</title>
+    <title>Warehouse QC Enterprise v3.7 (Report Patch)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -112,7 +112,7 @@
                     <i data-lucide="package-check" class="w-8 h-8 text-white"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-slate-800">Warehouse QC</h1>
-                <p class="text-sm text-slate-400">Enterprise Edition v3.8</p>
+                <p class="text-sm text-slate-400">Enterprise Edition v3.7</p>
             </div>
             <div class="space-y-4">
                 <div><label class="text-xs font-bold text-slate-500 mb-1.5 block ml-1">ชื่อผู้ใช้</label><input type="text" id="login-username" class="input-field w-full" placeholder="username"></div>
@@ -150,7 +150,7 @@
                 <button onclick="app.auth.logout()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-rose-500 hover:bg-rose-50 transition-all">
                     <i data-lucide="log-out" class="w-5 h-5"></i> ออกจากระบบ
                 </button>
-                <p class="text-[10px] text-slate-400 text-center mt-3 font-mono">v3.8 (Enterprise)</p>
+                <p class="text-[10px] text-slate-400 text-center mt-3 font-mono">v3.7 (Enterprise)</p>
             </div>
         </aside>
 
@@ -306,8 +306,7 @@
             { id: 'dashboard', label: 'ภาพรวม', icon: 'layout-grid', mobile: true, badge: false },
             { id: 'inventory', label: 'คลังสินค้า', icon: 'warehouse', mobile: false, badge: false }, 
             { id: 'stock', label: 'เบิกสินค้า', icon: 'layers', mobile: true, badge: true, badgeColor: 'bg-orange-500' },
-            // HIDE QC TAB via isHidden flag
-            { id: 'qc', label: 'QC', icon: 'clipboard-check', mobile: true, badge: true, badgeColor: 'bg-rose-500', isHidden: true },
+            { id: 'qc', label: 'QC', icon: 'clipboard-check', mobile: true, badge: true, badgeColor: 'bg-rose-500' },
             { id: 'pack', label: 'แพ็ค', icon: 'box', mobile: true, badge: true, badgeColor: 'bg-blue-500' },
             { id: 'ship', label: 'จัดส่ง', icon: 'truck', mobile: false, badge: true, badgeColor: 'bg-emerald-500' }, 
             { id: 'report', label: 'รายงานส่งขาด', icon: 'file-bar-chart', mobile: true, badge: false },
@@ -445,13 +444,13 @@
                 const mobileNav = document.getElementById('mobile-nav');
 
                 desktopNav.innerHTML = MENU_ITEMS.map(item => {
-                    if (allowed.includes(item.id) && !item.isHidden) {
+                    if (allowed.includes(item.id)) {
                         let badgeHtml = item.badge ? `<span id="d-badge-${item.id}" class="${item.badgeColor} text-white text-[10px] px-2 py-0.5 rounded-full hidden">0</span>` : '';
                         return `<button onclick="app.router('${item.id}')" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all hover:bg-slate-50 text-slate-500" data-page="${item.id}"><i data-lucide="${item.icon}" class="w-5 h-5"></i><span class="flex-1 text-left">${item.label}</span>${badgeHtml}</button>`;
                     } return '';
                 }).join('');
 
-                mobileNav.innerHTML = MENU_ITEMS.filter(i => i.mobile && !i.isHidden).map(item => {
+                mobileNav.innerHTML = MENU_ITEMS.filter(i => i.mobile).map(item => {
                     if (allowed.includes(item.id)) {
                         let badgeHtml = item.badge ? `<span id="m-badge-${item.id}" class="absolute top-1 right-3 min-w-[16px] h-4 flex items-center justify-center ${item.badgeColor} text-white text-[9px] px-1 rounded-full hidden">0</span>` : '';
                         return `<button onclick="app.router('${item.id}')" class="mobile-nav-item flex flex-col items-center justify-center w-full h-full gap-1 text-slate-400 relative" data-page="${item.id}"><i data-lucide="${item.icon}" class="w-6 h-6"></i><span class="text-[10px] font-medium">${item.label}</span>${badgeHtml}</button>`;
@@ -480,14 +479,6 @@
             },
 
             router(page, param = null) {
-                // Feature Flag / Route Blocker for QC
-                if (page === 'qc') {
-                    app.ui.toast('หน้า QC ถูกระงับการใช้งานชั่วคราว', 'warning');
-                    this.currentPage = 'dashboard';
-                    this.currentParam = null;
-                    return this.router('dashboard');
-                }
-
                 this.currentPage = page;
                 this.currentParam = param;
                 const main = document.getElementById('main-view');
@@ -510,7 +501,7 @@
                     case 'dashboard': this.views.renderDashboard(main); break;
                     case 'inventory': this.views.renderInventory(main); break;
                     case 'stock': this.views.renderList(main, 'pending_stock', 'เบิกสินค้า', 'layers', 'bg-orange-100 text-orange-600'); break;
-                    case 'qc': /* this.views.renderList(main, 'pending_qc', 'QC ตรวจสอบ', 'clipboard-check', 'bg-rose-100 text-rose-600'); */ break; // Should not reach here
+                    case 'qc': this.views.renderList(main, 'pending_qc', 'QC ตรวจสอบ', 'clipboard-check', 'bg-rose-100 text-rose-600'); break;
                     case 'pack': this.views.renderList(main, 'pending_pack', 'แพ็คสินค้า', 'box', 'bg-blue-100 text-blue-600'); break;
                     case 'ship': this.views.renderList(main, 'ready_ship', 'จัดส่ง', 'truck', 'bg-emerald-100 text-emerald-600'); break;
                     case 'report': this.views.renderReport(main); break;
@@ -544,7 +535,7 @@
                     if(!app.data.orders) return;
                     const stats = {
                         stock: app.data.orders.filter(o => o.status === 'pending_stock').length,
-                        qc: app.data.orders.filter(o => o.status === 'pending_qc').length, // Keep logic, hide from UI
+                        qc: app.data.orders.filter(o => o.status === 'pending_qc').length,
                         pack: app.data.orders.filter(o => o.status === 'pending_pack').length,
                         ship: app.data.orders.filter(o => o.status === 'ready_ship').length
                     };
@@ -558,9 +549,9 @@
                         <div class="p-4 lg:p-8 space-y-6 animate-fade-in max-w-5xl mx-auto pb-32">
                             <h2 class="text-2xl font-bold text-slate-800">ภาพรวม (Dashboard)</h2>
                             
-                            <!-- Updated Layout: Hide QC card to reflect UI cleanup without affecting stats structure -->
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                                 ${this.cardStat('รอเบิก', stats.stock, 'layers', 'bg-gradient-to-br from-orange-500 to-orange-400 text-white shadow-lg shadow-orange-200')}
+                                ${this.cardStat('รอตรวจ QC', stats.qc, 'clipboard-check', 'bg-gradient-to-br from-rose-500 to-rose-400 text-white shadow-lg shadow-rose-200')}
                                 ${this.cardStat('รอแพ็ค', stats.pack, 'box', 'bg-gradient-to-br from-blue-500 to-blue-400 text-white shadow-lg shadow-blue-200')}
                                 ${this.cardStat('รอส่ง', stats.ship, 'truck', 'bg-gradient-to-br from-emerald-500 to-emerald-400 text-white shadow-lg shadow-emerald-200')}
                             </div>
@@ -598,6 +589,7 @@
                         </div>`;
                 },
 
+                // [ADD] ฟังก์ชันสลับโหมดการดูรายงาน
                 setReportViewMode(viewMode) {
                     app.session.reportViewMode = viewMode;
                     const btnBranch = document.getElementById('btn-view-branch');
@@ -622,8 +614,9 @@
                     const currentDateStr = today.toISOString().split('T')[0];
 
                     app.session.reportSelectedProducts = [];
-                    app.session.reportViewMode = 'branch'; 
+                    app.session.reportViewMode = 'branch'; // [ADD] Default mode
 
+                    // [FIX Issue 1 & 2] เพิ่มปุ่ม Print Report, ปุ่ม Reset Filter และจำกัดวันที่ (max attribute)
                     container.innerHTML = `
                         <div class="p-4 lg:p-8 space-y-6 animate-fade-in max-w-6xl mx-auto pb-32">
                             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -687,6 +680,7 @@
                                 </div>
                             </div>
 
+                            <!-- [ADD] รูปแบบการดูรายงาน -->
                             <div class="flex gap-2 bg-slate-200/50 p-1.5 rounded-xl w-fit">
                                 <button onclick="app.views.setReportViewMode('branch')" id="btn-view-branch" class="px-5 py-2 text-sm font-bold rounded-lg bg-white shadow-sm text-blue-600 transition-all">ดูรายงานแบบแยกสาขา</button>
                                 <button onclick="app.views.setReportViewMode('summary')" id="btn-view-summary" class="px-5 py-2 text-sm font-bold rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 transition-all">ดูรายงานแบบรวมรายการ</button>
@@ -721,6 +715,7 @@
                     this.updateReportTable();
                 },
 
+                // [FIX Issue 1] ฟังก์ชันสำหรับล้างค่า Filter (Reset) ให้กลับมาเริ่มต้น
                 resetReportFilter() {
                     const today = new Date();
                     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
@@ -732,8 +727,9 @@
                     document.getElementById('rep-mode').value = 'shortfall';
                     
                     app.session.reportSelectedProducts = [];
-                    app.session.reportViewMode = 'branch'; 
+                    app.session.reportViewMode = 'branch'; // [ADD]
                     
+                    // [ADD] Reset button styles
                     const btnBranch = document.getElementById('btn-view-branch');
                     const btnSummary = document.getElementById('btn-view-summary');
                     if (btnBranch && btnSummary) {
@@ -746,6 +742,7 @@
                     this.updateReportTable();
                 },
 
+                // [FIX Issue 1] ฟังก์ชันสำหรับ Print รายงานตามตารางและ Filter
                 printReport() {
                     if (!app.reportData || app.reportData.length === 0) {
                         return app.ui.toast('ไม่มีข้อมูลสำหรับพิมพ์', 'warning');
@@ -755,7 +752,7 @@
                     const endVal = document.getElementById('rep-end').value;
                     const branch = document.getElementById('rep-branch').value || 'ทั้งหมด';
                     const mode = document.getElementById('rep-mode').options[document.getElementById('rep-mode').selectedIndex].text;
-                    const viewModeText = app.session.reportViewMode === 'summary' ? 'รวมรายการ' : 'แยกสาขา'; 
+                    const viewModeText = app.session.reportViewMode === 'summary' ? 'รวมรายการ' : 'แยกสาขา'; // [ADD]
                     const statsHtml = document.getElementById('rep-stats').innerHTML;
                     const tableHtml = document.querySelector('.overflow-x-auto').innerHTML;
 
@@ -787,6 +784,7 @@
                                     body { margin: 0; -webkit-print-color-adjust: exact; }
                                     .page-break { page-break-inside: avoid; }
                                     a { text-decoration: none; color: black; font-weight: normal; pointer-events: none; }
+                                    /* Simplify stats for print */
                                     #rep-stats { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
                                     #rep-stats > div { flex: 1; border: 1px solid #ccc; padding: 10px; border-radius: 8px; text-align: center; }
                                     #rep-stats p:first-child { font-size: 10px; text-transform: uppercase; color: #666; margin-bottom: 4px; }
@@ -904,6 +902,7 @@
                         });
                     });
 
+                    // [ADD] Aggregate data if viewMode is 'summary'
                     const viewMode = app.session.reportViewMode || 'branch';
                     if (viewMode === 'summary') {
                         const summaryMap = {};
@@ -944,10 +943,12 @@
                     if (reportItems.length === 0) {
                         tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400">ไม่พบข้อมูลตามเงื่อนไขที่ค้นหา</td></tr>`;
                     } else {
+                        // ไม่ต้อง sort วันที่ถ้ารวมรายการแล้วจะไม่มีวันที่
                         if (viewMode !== 'summary') {
                              reportItems.sort((a,b) => new Date(b.rawDate) - new Date(a.rawDate));
                         }
                         
+                        // [ADD] Modify tbody to handle summary view
                         tbody.innerHTML = reportItems.map(item => `
                             <tr class="hover:bg-slate-50 transition-colors group">
                                 <td class="p-4 text-slate-500">${viewMode === 'summary' ? '-' : app.ui.escapeHTML(item.date ? item.date.split(',')[0] : '-')}</td>
@@ -969,6 +970,7 @@
                         return app.ui.toast('ไม่มีข้อมูลสำหรับ Export', 'warning');
                     }
 
+                    // [ADD] Modify Export mapping to handle summary mode
                     const excelData = app.reportData.map(item => ({
                         'วันที่': item.date && item.date !== '-' ? item.date.split(',')[0] : '-',
                         'เอกสาร/ออเดอร์': item.docNo || '-',
@@ -1156,8 +1158,7 @@
 
                     if (order.status === 'pending_stock') {
                         content = this.renderStockContent(order, canEdit);
-                        // Modified validation stock flow to skip QC UI if needed, but keeping logic standard as per instruction
-                        if (canEdit) footer = `<button onclick="app.logic.validateStock('${app.ui.escapeStr(id)}')" class="btn-main btn-orange">ยืนยันการเบิกสินค้า</button>`;
+                        if (canEdit) footer = `<button onclick="app.logic.validateStock('${app.ui.escapeStr(id)}')" class="btn-main btn-orange">ยืนยันส่งตรวจสอบ</button>`;
                     } else if (order.status === 'pending_qc') {
                         content = this.renderQCContent(order, canEdit);
                         if (canEdit) footer = `<button onclick="app.logic.submitQC('${app.ui.escapeStr(id)}')" class="btn-main btn-rose">บันทึกผล QC</button>`;
@@ -3045,7 +3046,6 @@
                 validateStock(id) {
                     const order = app.data.orders.find(o => o.id === id);
                     const invalid = order.items.some(i => (i.picked||0) !== i.qty);
-                    // Keep original logic, move to pending_qc
                     if(invalid) app.ui.toast('ยอดเบิกไม่ตรงกับยอดสั่ง', 'error'); else app.logic.moveStatus(id, 'pending_qc', 'เบิกครบถ้วน');
                 },
                 setQC(id, itemIdx, field, val) { 
